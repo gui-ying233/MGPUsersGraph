@@ -1,5 +1,5 @@
 # 萌娘百科用户连接图
-https://gui-ying233.github.io/MGPUsersGraph/
+[https://gui-ying233.github.io/MGPUsersGraph/](https://gui-ying233.github.io/MGPUsersGraph/?utm_source=github&utm_medium=referral&utm_content=https://github.com/gui-ying233/MGPUsersGraph)
 
 ## 数据时间
 2025年10月24日
