@@ -33,8 +33,15 @@ function App() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-	const [searchTerm, setSearchTerm] = useState("");
-	const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+	const [searchTerm, setSearchTerm] = useState(() => {
+		const params = new URLSearchParams(window.location.search);
+		return params.get("search") || "";
+	});
+	const [selectedTags, setSelectedTags] = useState<Set<string>>(() => {
+		const params = new URLSearchParams(window.location.search);
+		const tags = params.get("tags");
+		return tags ? new Set(tags.split(",")) : new Set();
+	});
 	const [zoomLevel, setZoomLevel] = useState(1);
 	const [workerFilteredNodeIds, setWorkerFilteredNodeIds] = useState<
 		Set<string>
@@ -66,6 +73,20 @@ function App() {
 			workerRef.current?.terminate();
 		};
 	}, []);
+
+	useEffect(() => {
+		const params = new URLSearchParams();
+		if (searchTerm) {
+			params.set("search", searchTerm);
+		}
+		if (selectedTags.size > 0) {
+			params.set("tags", Array.from(selectedTags).join(","));
+		}
+		const newUrl = params.toString()
+			? `${window.location.pathname}?${params.toString()}`
+			: window.location.pathname;
+		window.history.replaceState({}, "", newUrl);
+	}, [searchTerm, selectedTags]);
 
 	const handleZoom = useCallback((zoomTransform: any) => {
 		if (zoomTimeoutRef.current) {
@@ -107,6 +128,22 @@ function App() {
 				setWorkerFilteredNodeIds(
 					new Set(nodeArray.map((n: any) => n.id))
 				);
+
+				const validTags = new Set<string>();
+				nodeArray.forEach((node: any) => {
+					node.tags.forEach((tag: string) => {
+						validTags.add(tag);
+					});
+				});
+
+				const urlTags = Array.from(selectedTags);
+				const validatedTags = new Set(
+					urlTags.filter(tag => validTags.has(tag))
+				);
+				if (validatedTags.size !== selectedTags.size) {
+					setSelectedTags(validatedTags);
+				}
+
 				setLoading(false);
 			} catch (err) {
 				setError(`Failed to load graph data: ${err}`);
@@ -114,6 +151,7 @@ function App() {
 			}
 		};
 		loadGraph();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [config]);
 
 	const tagIndexCache = useMemo(() => {

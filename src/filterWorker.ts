@@ -30,13 +30,17 @@ self.onmessage = (event: MessageEvent<FilterMessage>) => {
 	const { nodes, links, searchTerm, selectedTags, tagIndexCache } =
 		event.data;
 
+	const sanitizedSearchTerm = (searchTerm || "").trim();
+	const sanitizedTags = (selectedTags || []).filter(
+		tag => typeof tag === "string" && tag in tagIndexCache
+	);
+
 	let resultNodeIds = new Set<string>();
 	let searchedNodeIdResult: string | null = null;
 
-	if (searchTerm.trim() !== "") {
-		const searchLower = searchTerm.toLowerCase();
+	if (sanitizedSearchTerm !== "") {
 		const matchedNode = nodes.find(
-			node => node.name.toLowerCase() === searchLower
+			node => node.name === sanitizedSearchTerm
 		);
 
 		if (matchedNode) {
@@ -66,16 +70,16 @@ self.onmessage = (event: MessageEvent<FilterMessage>) => {
 		}
 	}
 
-	if (selectedTags.length > 0) {
+	if (sanitizedTags.length > 0) {
 		const tagFilteredNodeIds = new Set<string>();
-		selectedTags.forEach(tag => {
+		sanitizedTags.forEach(tag => {
 			const nodeIds = tagIndexCache[tag] || [];
 			nodeIds.forEach(nodeId => {
 				tagFilteredNodeIds.add(nodeId);
 			});
 		});
 
-		if (searchTerm.trim() !== "") {
+		if (sanitizedSearchTerm !== "") {
 			resultNodeIds = new Set(
 				Array.from(resultNodeIds).filter(
 					id =>
