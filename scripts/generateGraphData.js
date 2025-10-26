@@ -86,7 +86,6 @@ async function main() {
 	const linkSet = new Set();
 	const connectionCountMap = new Map();
 
-	// Parse all files and build graph
 	for (const filePath of files) {
 		const node = parseMarkdownFile(filePath);
 		if (!node) continue;
@@ -114,11 +113,21 @@ async function main() {
 		}
 	}
 
-	// Filter nodes and build color mapping
 	const nodeIds = new Set(Array.from(nodeMap.entries()).map(([id]) => id));
-	const validLinks = links.filter(
-		link => nodeIds.has(link.source) && nodeIds.has(link.target)
-	);
+
+	const allReferencedIds = new Set();
+	links.forEach(link => {
+		allReferencedIds.add(link.source);
+		allReferencedIds.add(link.target);
+	});
+
+	allReferencedIds.forEach(id => {
+		if (!nodeMap.has(id)) {
+			nodeMap.set(id, { name: id, tags: [] });
+		}
+	});
+
+	const validLinks = links;
 
 	const linkedNodeIds = new Set();
 	validLinks.forEach(link => {
@@ -136,7 +145,6 @@ async function main() {
 			connectionCount: connectionCountMap.get(id) || 0,
 		}));
 
-	// Build color enum
 	const colorToEnum = {};
 	const enumColors = [DEFAULT_COLOR];
 	Object.values(TAG_COLOR_MAP).forEach(color => {
@@ -146,7 +154,6 @@ async function main() {
 		}
 	});
 
-	// Compress graph data
 	const nodeIdMap = {};
 	const nodeDict = filteredNodes.map((node, idx) => {
 		nodeIdMap[node.id] = idx;
@@ -168,7 +175,6 @@ async function main() {
 		nodeIdMap[link.target],
 	]);
 
-	// Write output files
 	fs.writeFileSync(
 		path.resolve(outputDir, "graph.json"),
 		JSON.stringify({ d: nodeDict, l: compressedLinks }, null, 0)
