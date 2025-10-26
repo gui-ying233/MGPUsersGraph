@@ -1,0 +1,45 @@
+{
+  "colorGroups": {
+    "staff": "#198754",
+    "bureaucrat": "#6610F2",
+    "checkuser": "#673AB7",
+    "suppress": "#9C27B0",
+    "sysop": "#EC407A",
+    "interface-admin": "#F55B42",
+    "patroller": "#F77F38",
+    "honoredmaintainer": "#FEBD45",
+    "techeditor": "#3F51B5",
+    "file-maintainer": "#039BE5",
+    "bot": "#1E88E5",
+    "flood": "#1E88E5",
+    "goodeditor": "#1AA179",
+    "special-contributor": "#595C5F"
+  },
+  "e": [
+    "#eceff4",
+    "#198754",
+    "#6610F2",
+    "#673AB7",
+    "#9C27B0",
+    "#EC407A",
+    "#F55B42",
+    "#F77F38",
+    "#FEBD45",
+    "#3F51B5",
+    "#039BE5",
+    "#1E88E5",
+    "#1AA179",
+    "#595C5F"
+  ],
+  "forces": {
+    "centerStrength": 1,
+    "repelStrength": 40,
+    "linkStrength": 2,
+    "linkDistance": 30,
+    "alpha": 0.1,
+    "alphaMin": 0.001
+  },
+  "nodeSizeMultiplier": 0.247941080729167,
+  "lineSizeMultiplier": 0.1,
+  "totalNodes": 10953
+}

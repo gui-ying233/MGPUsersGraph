@@ -1,0 +1,35 @@
+{
+	"name": "mgpusersgraph",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"generate": "node scripts/generateGraphData.js",
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"lint": "eslint .",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"react": "latest",
+		"react-dom": "latest",
+		"react-force-graph-2d": "latest"
+	},
+	"devDependencies": {
+		"@eslint/js": "latest",
+		"@types/node": "latest",
+		"@types/react": "latest",
+		"@types/react-dom": "latest",
+		"@vitejs/plugin-react": "latest",
+		"eslint": "latest",
+		"eslint-plugin-react-hooks": "latest",
+		"eslint-plugin-react-refresh": "latest",
+		"globals": "latest",
+		"typescript": "latest",
+		"typescript-eslint": "latest",
+		"vite": "npm:rolldown-vite@latest"
+	},
+	"overrides": {
+		"vite": "npm:rolldown-vite@latest"
+	}
+}
