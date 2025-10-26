@@ -8,12 +8,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
-docs/assets
-docs/*.js
-docs/*.css
-docs/*.map
 *.local
 
 # Editor directories and files
