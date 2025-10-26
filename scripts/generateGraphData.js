@@ -137,13 +137,30 @@ async function main() {
 
 	const filteredNodes = Array.from(nodeMap.entries())
 		.filter(([id]) => linkedNodeIds.has(id))
-		.map(([id, node]) => ({
-			id,
-			name: node.name,
-			tags: node.tags,
-			color: TAG_COLOR_MAP[node.tags[0]] || DEFAULT_COLOR,
-			connectionCount: connectionCountMap.get(id) || 0,
-		}));
+		.map(([id, node]) => {
+			let color = TAG_COLOR_MAP[node.tags[0]] || DEFAULT_COLOR;
+			
+			if (node.tags.length === 0 && validLinks.length > 0) {
+				for (const link of validLinks) {
+					if (link.source === id || link.target === id) {
+						const connectedId = link.source === id ? link.target : link.source;
+						const connectedNode = nodeMap.get(connectedId);
+						if (connectedNode?.tags.length > 0) {
+							color = TAG_COLOR_MAP[connectedNode.tags[0]] || DEFAULT_COLOR;
+							break;
+						}
+					}
+				}
+			}
+			
+			return {
+				id,
+				name: node.name,
+				tags: node.tags,
+				color,
+				connectionCount: connectionCountMap.get(id) || 0,
+			};
+		});
 
 	const colorToEnum = {};
 	const enumColors = [DEFAULT_COLOR];
