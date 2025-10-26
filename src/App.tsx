@@ -45,6 +45,7 @@ function App() {
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const workerRef = useRef<Worker | null>(null);
+	const lastClickRef = useRef<{ nodeId: string; time: number } | null>(null);
 
 	useEffect(() => {
 		workerRef.current = new Worker(
@@ -160,6 +161,17 @@ function App() {
 	}, [links, workerFilteredNodeIds]);
 
 	useEffect(() => {
+		if (!graphRef.current || filteredNodes.length === 0) return;
+
+		setTimeout(() => {
+			const centerNode = filteredNodes[0] as GraphNode2D;
+			if (centerNode.x !== undefined && centerNode.y !== undefined) {
+				graphRef.current?.centerAt(centerNode.x, centerNode.y, 300);
+			}
+		}, 50);
+	}, [filteredNodes]);
+
+	useEffect(() => {
 		if (!config || !graphRef.current) return;
 		graphRef.current
 			.d3Force("charge")
@@ -272,6 +284,11 @@ function App() {
 		},
 		[zoomLevel]
 	);
+
+	const handleCenterGraph = useCallback(() => {
+		if (!graphRef.current) return;
+		graphRef.current.zoomToFit(400, 50);
+	}, []);
 
 	const graphData = useMemo(
 		() => ({ nodes: filteredNodes, links: convertedLinks }),
@@ -397,11 +414,57 @@ function App() {
 					nodeLabel={handleNodeLabel}
 					nodeCanvasObject={handleNodeCanvasObject}
 					linkCanvasObject={handleLinkCanvasObject}
-					onNodeClick={(node: GraphNode2D) => setSelectedNode(node)}
+					onNodeClick={(node: GraphNode2D) => {
+						const now = Date.now();
+						if (
+							lastClickRef.current &&
+							lastClickRef.current.nodeId === node.id &&
+							now - lastClickRef.current.time < 300
+						) {
+							setSearchTerm(node.id);
+							lastClickRef.current = null;
+						} else {
+							setSelectedNode(node);
+							lastClickRef.current = {
+								nodeId: node.id,
+								time: now,
+							};
+						}
+					}}
 					onZoom={handleZoom}
 					width={window.innerWidth}
 					height={window.innerHeight}
 				/>
+				<button
+					onClick={handleCenterGraph}
+					style={{
+						position: "fixed",
+						bottom: "20px",
+						left: "20px",
+						padding: "10px 16px",
+						backgroundColor: "#2d3748",
+						color: "#eceff4",
+						border: "1px solid #4a5568",
+						borderRadius: "4px",
+						cursor: "pointer",
+						fontSize: "14px",
+						fontWeight: "500",
+						zIndex: 10,
+						transition: "all 0.3s ease",
+					}}
+					onMouseEnter={e => {
+						const btn = e.currentTarget;
+						btn.style.backgroundColor = "#4a5568";
+						btn.style.transform = "scale(1.05)";
+					}}
+					onMouseLeave={e => {
+						const btn = e.currentTarget;
+						btn.style.backgroundColor = "#2d3748";
+						btn.style.transform = "scale(1)";
+					}}
+				>
+					居中
+				</button>
 			</div>
 		</div>
 	);
