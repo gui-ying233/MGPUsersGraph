@@ -83,7 +83,7 @@ function App() {
 		if (!config) return;
 		const loadGraph = async () => {
 			try {
-				const res = await fetch("/dist/data/graph.json");
+				const res = await fetch("/docs/data/graph.json");
 				const compressed = await res.json();
 
 				const nodeArray = compressed.d.map((node: any) => ({
