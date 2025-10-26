@@ -90,7 +90,7 @@ function App() {
 					id: node.n,
 					name: node.n,
 					tags: node.t || [],
-					color: config.e[node.e],
+					color: config.e[node.e !== undefined ? node.e : 0],
 					connectionCount: node.k !== undefined ? node.k : 1,
 				}));
 
