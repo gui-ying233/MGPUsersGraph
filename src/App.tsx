@@ -420,7 +420,7 @@ function App() {
 					<div className="node-tags">
 						<strong>标签：</strong>
 						{selectedNode.tags.length > 0 ? (
-							<div className="tags">
+							<div id="tags">
 								{selectedNode.tags.map(tag => (
 									<span
 										key={tag}
@@ -443,6 +443,17 @@ function App() {
 							<p>没有标签</p>
 						)}
 					</div>
+					<a
+						href={`https://mzh.moegirl.org.cn/User:${encodeURIComponent(
+							selectedNode.name
+						)}?utm_medium=referral&utm_source=萌娘百科用户连接图&utm_content=${encodeURIComponent(
+							window.location.href
+						)}`}
+						target="_blank"
+						id="user-page-link"
+					>
+						访问用户页面
+					</a>
 				</div>
 			)}
 			<div style={{ width: "100%", height: "100vh" }}>
