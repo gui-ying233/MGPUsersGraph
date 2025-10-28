@@ -499,7 +499,7 @@ function App() {
 			if (zoomLevel > 1) {
 				ctx.fillStyle = "#d8dee9";
 				const fontSize = Math.max(2, Math.min(16, size * 1.2));
-				ctx.font = `${fontSize}px sans-serif`;
+				ctx.font = `${fontSize}px ui-sans-serif, sans-serif`;
 				ctx.textAlign = "center";
 				ctx.textBaseline = "top";
 
