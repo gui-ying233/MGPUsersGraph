@@ -3,12 +3,189 @@ import ForceGraph2D from "react-force-graph-2d";
 import { CONFIG, TAG_DISPLAY_NAMES, type GraphConfig } from "./config";
 import "./App.css";
 
+interface UserInfo {
+	username: string;
+	editcount: number;
+	registration: string;
+	groups: string[];
+	gender?: string;
+	blockinfo?: {
+		blockedby: string;
+		blockid: number;
+		blockreason: string;
+		blockexpiry: string;
+	};
+	timestamp: number;
+}
+
+const DB_NAME = "MGPUsersGraph";
+const DB_VERSION = 1;
+const STORE_NAME = "users";
+
+function openDB(): Promise<IDBDatabase> {
+	return new Promise((resolve, reject) => {
+		const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+		request.onerror = () => reject(request.error);
+		request.onsuccess = () => resolve(request.result);
+
+		request.onupgradeneeded = event => {
+			const db = (event.target as IDBOpenDBRequest).result;
+			if (!db.objectStoreNames.contains(STORE_NAME)) {
+				db.createObjectStore(STORE_NAME, { keyPath: "username" });
+			}
+		};
+	});
+}
+
+async function getUserFromCache(username: string): Promise<UserInfo | null> {
+	try {
+		const db = await openDB();
+		return new Promise((resolve, reject) => {
+			const transaction = db.transaction([STORE_NAME], "readonly");
+			const store = transaction.objectStore(STORE_NAME);
+			const request = store.get(username);
+
+			request.onerror = () => reject(request.error);
+			request.onsuccess = () => {
+				const result = request.result;
+				if (
+					result &&
+					Date.now() - result.timestamp < 7 * 24 * 60 * 60 * 1000
+				) {
+					resolve(result);
+				} else {
+					resolve(null);
+				}
+			};
+		});
+	} catch {
+		return null;
+	}
+}
+
+async function saveUserToCache(user: UserInfo): Promise<void> {
+	try {
+		const db = await openDB();
+		return new Promise((resolve, reject) => {
+			const transaction = db.transaction([STORE_NAME], "readwrite");
+			const store = transaction.objectStore(STORE_NAME);
+			const request = store.put(user);
+
+			request.onerror = () => reject(request.error);
+			request.onsuccess = () => resolve();
+		});
+	} catch {
+		return;
+	}
+}
+
+async function fetchUserInfo(
+	username: string,
+	skipCache = false
+): Promise<UserInfo | null> {
+	if (!skipCache) {
+		const cached = await getUserFromCache(username);
+		if (cached) {
+			return cached;
+		}
+	}
+
+	try {
+		const response = await fetch("https://mzh.moegirl.org.cn/api.php", {
+			method: "POST",
+			body: new URLSearchParams({
+				action: "query",
+				format: "json",
+				list: "users",
+				utf8: "1",
+				formatversion: "2",
+				usprop: "blockinfo|editcount|registration|groups|gender",
+				ususers: username,
+				origin: "*",
+			}),
+		});
+
+		if (!response.ok) {
+			return null;
+		}
+
+		const data = await response.json();
+		const users = data.query?.users;
+
+		if (!users || users.length === 0) {
+			return null;
+		}
+
+		const user = users[0];
+		const rawGroups = (user.groups || []).filter((g: string) => g !== "*");
+
+		const translatedGroups = rawGroups.map(
+			(g: string) =>
+				({
+					autoconfirmed: "自动确认用户",
+					bot: "机器人",
+					bureaucrat: "行政员",
+					checkuser: "用户查核员",
+					extendedconfirmed: "延伸确认用户",
+					"file-maintainer": "文件维护员",
+					flood: "机器用户",
+					goodeditor: "优质编辑者",
+					honoredmaintainer: "荣誉维护人员",
+					"interface-admin": "界面管理员",
+					"ipblock-exempt": "IP封禁豁免者",
+					"manually-confirmed": "手动确认用户",
+					patroller: "维护姬",
+					"push-subscription-manager": "推送订阅管理员",
+					"special-contributor": "特殊贡献者",
+					staff: "STAFF",
+					suppress: "监督员",
+					sysop: "管理员",
+					techeditor: "技术编辑员",
+					user: "用户",
+				}[g] || g)
+		);
+
+		const blockinfo = user.blockedby
+			? {
+					blockedby: user.blockedby || "",
+					blockid: user.blockid || 0,
+					blockreason: user.blockreason || "",
+					blockexpiry: user.blockexpiry || "",
+			  }
+			: undefined;
+
+		const userInfo: UserInfo = {
+			username: user.name,
+			editcount: user.editcount || 0,
+			registration: user.registration || "",
+			groups: translatedGroups,
+			gender: user.gender
+				? (
+						{ male: "男", female: "女", unknown: "未知" } as Record<
+							string,
+							string
+						>
+				  )[user.gender] || user.gender
+				: undefined,
+			blockinfo,
+			timestamp: Date.now(),
+		};
+
+		await saveUserToCache(userInfo);
+		return userInfo;
+	} catch {
+		return null;
+	}
+}
+
 interface GraphNode {
 	id: string;
 	name: string;
 	tags: string[];
 	color: string;
-	connectionCount?: number;
+	incomingCount: number;
+	outgoingCount: number;
 }
 
 interface GraphLink {
@@ -33,6 +210,8 @@ function App() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+	const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+	const [loadingUserInfo, setLoadingUserInfo] = useState(false);
 	const [searchTerm, setSearchTerm] = useState(() => {
 		const params = new URLSearchParams(window.location.search);
 		return params.get("search") || "";
@@ -49,6 +228,12 @@ function App() {
 	const [workerSearchedNodeId, setWorkerSearchedNodeId] = useState<
 		string | null
 	>(null);
+	const [textLineCache, setTextLineCache] = useState<
+		Record<string, string[]>
+	>({});
+	const [nodeSizeCache, setNodeSizeCache] = useState<Record<string, number>>(
+		{}
+	);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const workerRef = useRef<Worker | null>(null);
@@ -56,18 +241,28 @@ function App() {
 
 	useEffect(() => {
 		workerRef.current = new Worker(
-			new URL("./filterWorker.ts", import.meta.url),
+			new URL("./worker.ts", import.meta.url),
 			{ type: "module" }
 		);
 		workerRef.current.onmessage = (
 			event: MessageEvent<{
-				filteredNodeIds: string[];
-				filteredLinkIds: string[];
-				searchedNodeId: string | null;
+				filteredNodeIds?: string[];
+				filteredLinkIds?: string[];
+				searchedNodeId?: string | null;
+				textLineCache?: Record<string, string[]>;
+				nodeSizeCache?: Record<string, number>;
 			}>
 		) => {
-			setWorkerFilteredNodeIds(new Set(event.data.filteredNodeIds));
-			setWorkerSearchedNodeId(event.data.searchedNodeId);
+			if (event.data.filteredNodeIds !== undefined) {
+				setWorkerFilteredNodeIds(new Set(event.data.filteredNodeIds));
+				setWorkerSearchedNodeId(event.data.searchedNodeId || null);
+			}
+			if (event.data.textLineCache !== undefined) {
+				setTextLineCache(event.data.textLineCache);
+			}
+			if (event.data.nodeSizeCache !== undefined) {
+				setNodeSizeCache(event.data.nodeSizeCache);
+			}
 		};
 		return () => {
 			workerRef.current?.terminate();
@@ -113,7 +308,8 @@ function App() {
 					name: node.n,
 					tags: node.t || [],
 					color: config.e[node.e !== undefined ? node.e : 0],
-					connectionCount: node.k !== undefined ? node.k : 1,
+					incomingCount: 0,
+					outgoingCount: 0,
 				}));
 
 				const decompressedLinks = compressed.l.map(
@@ -122,6 +318,17 @@ function App() {
 						target: nodeArray[link[1]].id,
 					})
 				);
+
+				decompressedLinks.forEach((link: GraphLink) => {
+					const sourceNode = nodeArray.find(
+						(n: any) => n.id === link.source
+					);
+					const targetNode = nodeArray.find(
+						(n: any) => n.id === link.target
+					);
+					if (sourceNode) sourceNode.incomingCount++;
+					if (targetNode) targetNode.outgoingCount++;
+				});
 
 				setNodes(nodeArray);
 				setLinks(decompressedLinks);
@@ -178,6 +385,7 @@ function App() {
 		});
 
 		workerRef.current?.postMessage({
+			type: "filter",
 			nodes,
 			links,
 			searchTerm,
@@ -227,6 +435,17 @@ function App() {
 		}
 	}, [config]);
 
+	useEffect(() => {
+		if (selectedNode && !userInfo && !loadingUserInfo) {
+			(async () => {
+				const cached = await getUserFromCache(selectedNode.name);
+				if (cached) {
+					setUserInfo(cached);
+				}
+			})();
+		}
+	}, [selectedNode, userInfo, loadingUserInfo]);
+
 	const convertedLinks: LinkWithCoords[] = useMemo(() => {
 		const nodeMap = new Map<string, GraphNode2D>();
 		filteredNodes.forEach(node => {
@@ -243,30 +462,26 @@ function App() {
 			) as LinkWithCoords[];
 	}, [filteredNodes, filteredLinks]);
 
-	const textLineCache = useMemo(() => {
-		const cache = new Map<string, string[]>();
-		filteredNodes.forEach(node => {
-			const charLimit = 25;
-			const lines: string[] = [];
-			let currentLine = "";
-			for (const char of node.name) {
-				currentLine += char;
-				if (currentLine.length >= charLimit) {
-					lines.push(currentLine);
-					currentLine = "";
-				}
-			}
-			if (currentLine) lines.push(currentLine);
-			cache.set(node.id, lines);
+	useEffect(() => {
+		if (filteredNodes.length === 0 || !config) return;
+		workerRef.current?.postMessage({
+			type: "textCache",
+			nodes: filteredNodes,
 		});
-		return cache;
-	}, [filteredNodes]);
+		workerRef.current?.postMessage({
+			type: "nodeSize",
+			nodes: filteredNodes,
+			nodeSizeMultiplier: config.nodeSizeMultiplier,
+		});
+	}, [filteredNodes, config]);
 
 	const handleNodeCanvasObject = useCallback(
 		(node: GraphNode2D, ctx: CanvasRenderingContext2D) => {
 			if (!config) return;
-			const connectionCount = node.connectionCount || 1;
-			const size = Math.sqrt(connectionCount) * config.nodeSizeMultiplier;
+			const size =
+				nodeSizeCache[node.id] ??
+				Math.sqrt(node.incomingCount + node.outgoingCount || 1) *
+					config.nodeSizeMultiplier;
 			ctx.fillStyle = node.color;
 			ctx.beginPath();
 			ctx.arc(node.x ?? 0, node.y ?? 0, size, 0, 2 * Math.PI);
@@ -287,22 +502,21 @@ function App() {
 				ctx.textAlign = "center";
 				ctx.textBaseline = "top";
 
-				const lines = textLineCache.get(node.id) || [];
+				const lines = textLineCache[node.id] || [];
 				const lineHeight = fontSize + 2;
 				const startY = (node.y ?? 0) + size + 4;
 
-				lines.forEach((line, index) => {
+				lines.forEach((line: string) => {
 					ctx.fillText(
 						line,
 						node.x ?? 0,
-						startY + index * lineHeight
+						startY + lines.indexOf(line) * lineHeight
 					);
 				});
 			}
 		},
-		[config, workerSearchedNodeId, zoomLevel, textLineCache]
+		[config, workerSearchedNodeId, zoomLevel, textLineCache, nodeSizeCache]
 	);
-
 	const handleLinkCanvasObject = useCallback(
 		(link: LinkWithCoords, ctx: CanvasRenderingContext2D) => {
 			if (!config) return;
@@ -417,6 +631,12 @@ function App() {
 			{selectedNode && (
 				<div id="node-detail-panel">
 					<h3>{selectedNode.name}</h3>
+					<div className="info-item">
+						<strong>链入：</strong> {selectedNode.incomingCount}
+					</div>
+					<div className="info-item">
+						<strong>链出：</strong> {selectedNode.outgoingCount}
+					</div>
 					<div className="node-tags">
 						<strong>标签：</strong>
 						{selectedNode.tags.length > 0 ? (
@@ -443,6 +663,110 @@ function App() {
 							<p>没有标签</p>
 						)}
 					</div>
+					{userInfo && (
+						<div id="user-info">
+							<div className="info-item">
+								<strong>编辑数：</strong> {userInfo.editcount}
+							</div>
+							{userInfo.registration && (
+								<div className="info-item">
+									<strong>注册时间：</strong>{" "}
+									{new Date(userInfo.registration)
+										.toLocaleString("zh-CN", {
+											year: "numeric",
+											month: "2-digit",
+											day: "2-digit",
+											hour: "2-digit",
+											minute: "2-digit",
+											second: "2-digit",
+										})
+										.replace(/\//g, "-")}
+								</div>
+							)}
+							{userInfo.gender && (
+								<div className="info-item">
+									<strong>性别：</strong> {userInfo.gender}
+								</div>
+							)}
+							{userInfo.groups.length > 0 && (
+								<div className="info-item">
+									<strong>用户组：</strong>
+									<div id="user-groups">
+										{userInfo.groups.map(group => (
+											<span
+												key={group}
+												className="user-group"
+											>
+												{group}
+											</span>
+										))}
+									</div>
+								</div>
+							)}
+							{userInfo.blockinfo && (
+								<div
+									className="info-item"
+									style={{ color: "#bf616a" }}
+								>
+									<strong>⚠️ 被封禁</strong>
+									<div className="block-info">
+										<div>
+											封禁者：
+											{userInfo.blockinfo.blockedby}
+										</div>
+										<div>
+											原因：
+											{userInfo.blockinfo.blockreason}
+										</div>
+										<div>
+											到期：
+											{userInfo.blockinfo.blockexpiry ===
+											"infinite"
+												? "无期限"
+												: new Date(
+														userInfo.blockinfo.blockexpiry
+												  )
+														.toLocaleString(
+															"zh-CN",
+															{
+																year: "numeric",
+																month: "2-digit",
+																day: "2-digit",
+																hour: "2-digit",
+																minute: "2-digit",
+																second: "2-digit",
+															}
+														)
+														.replace(/\//g, "-")}
+										</div>
+									</div>
+								</div>
+							)}
+						</div>
+					)}
+					<button
+						id="load-user-info-btn"
+						onClick={async () => {
+							setLoadingUserInfo(true);
+							const info = await fetchUserInfo(
+								selectedNode.name,
+								!!userInfo
+							);
+							setUserInfo(info);
+							setLoadingUserInfo(false);
+						}}
+						disabled={loadingUserInfo}
+						style={{
+							opacity: loadingUserInfo ? 0.6 : 1,
+							cursor: loadingUserInfo ? "default" : "pointer",
+						}}
+					>
+						{loadingUserInfo
+							? "加载中..."
+							: userInfo
+							? "重新获取最新信息"
+							: "加载更多信息"}
+					</button>
 					<a
 						href={`https://mzh.moegirl.org.cn/User:${encodeURIComponent(
 							selectedNode.name
@@ -474,6 +798,7 @@ function App() {
 							lastClickRef.current = null;
 						} else {
 							setSelectedNode(node);
+							setUserInfo(null);
 							lastClickRef.current = {
 								nodeId: node.id,
 								time: now,

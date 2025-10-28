@@ -32,6 +32,9 @@ export const TAG_DISPLAY_NAMES: Record<string, string> = {
 	"manually-confirmed": "手动确认用户",
 	goodeditor: "优质编辑者",
 	"special-contributor": "特殊贡献者",
+	autoconfirmed: "自动确认用户",
+	"push-subscription-manager": "推送订阅管理员",
+	user: "用户",
 };
 
 export const CONFIG: GraphConfig = {

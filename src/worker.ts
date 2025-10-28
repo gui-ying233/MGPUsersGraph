@@ -3,7 +3,8 @@ interface GraphNode {
 	name: string;
 	tags: string[];
 	color: string;
-	connectionCount?: number;
+	incomingCount: number;
+	outgoingCount: number;
 }
 
 interface GraphLink {
@@ -20,16 +21,69 @@ interface FilterMessage {
 	tagIndexCache: Record<string, string[]>;
 }
 
+interface TextCacheMessage {
+	type: "textCache";
+	nodes: GraphNode[];
+}
+
+interface NodeSizeMessage {
+	type: "nodeSize";
+	nodes: GraphNode[];
+	nodeSizeMultiplier: number;
+}
+
 interface FilterResult {
 	filteredNodeIds: string[];
 	filteredLinkIds: string[];
 	searchedNodeId: string | null;
 }
 
-self.onmessage = (event: MessageEvent<FilterMessage>) => {
-	const { nodes, links, searchTerm, selectedTags, tagIndexCache } =
-		event.data;
+interface TextCacheResult {
+	textLineCache: Record<string, string[]>;
+}
 
+interface NodeSizeResult {
+	nodeSizeCache: Record<string, number>;
+}
+
+function buildTextLineCache(nodes: GraphNode[]): Record<string, string[]> {
+	const cache: Record<string, string[]> = {};
+	nodes.forEach(node => {
+		const charLimit = 25;
+		const lines: string[] = [];
+		let currentLine = "";
+		for (const char of node.name) {
+			currentLine += char;
+			if (currentLine.length >= charLimit) {
+				lines.push(currentLine);
+				currentLine = "";
+			}
+		}
+		if (currentLine) lines.push(currentLine);
+		cache[node.id] = lines;
+	});
+	return cache;
+}
+
+function buildNodeSizeCache(
+	nodes: GraphNode[],
+	nodeSizeMultiplier: number
+): Record<string, number> {
+	const cache: Record<string, number> = {};
+	nodes.forEach(node => {
+		const connectionCount = node.incomingCount + node.outgoingCount || 1;
+		cache[node.id] = Math.sqrt(connectionCount) * nodeSizeMultiplier;
+	});
+	return cache;
+}
+
+function processFilter(
+	nodes: GraphNode[],
+	links: GraphLink[],
+	searchTerm: string,
+	selectedTags: string[],
+	tagIndexCache: Record<string, string[]>
+): FilterResult {
 	const sanitizedSearchTerm = (searchTerm || "").trim();
 	const sanitizedTags = (selectedTags || []).filter(
 		tag => typeof tag === "string" && tag in tagIndexCache
@@ -61,12 +115,11 @@ self.onmessage = (event: MessageEvent<FilterMessage>) => {
 				);
 			});
 		} else {
-			self.postMessage({
+			return {
 				filteredNodeIds: [],
 				filteredLinkIds: [],
 				searchedNodeId: null,
-			} as FilterResult);
-			return;
+			};
 		}
 	}
 
@@ -105,9 +158,38 @@ self.onmessage = (event: MessageEvent<FilterMessage>) => {
 		}
 	});
 
-	self.postMessage({
+	return {
 		filteredNodeIds,
 		filteredLinkIds,
 		searchedNodeId: searchedNodeIdResult,
-	} as FilterResult);
+	};
+}
+
+self.onmessage = (
+	event: MessageEvent<FilterMessage | TextCacheMessage | NodeSizeMessage>
+) => {
+	const message = event.data;
+
+	if (message.type === "filter") {
+		const filterMessage = message as FilterMessage;
+		const result = processFilter(
+			filterMessage.nodes,
+			filterMessage.links,
+			filterMessage.searchTerm,
+			filterMessage.selectedTags,
+			filterMessage.tagIndexCache
+		);
+		self.postMessage(result);
+	} else if (message.type === "textCache") {
+		const textMessage = message as TextCacheMessage;
+		const textLineCache = buildTextLineCache(textMessage.nodes);
+		self.postMessage({ textLineCache } as TextCacheResult);
+	} else if (message.type === "nodeSize") {
+		const nodeSizeMessage = message as NodeSizeMessage;
+		const nodeSizeCache = buildNodeSizeCache(
+			nodeSizeMessage.nodes,
+			nodeSizeMessage.nodeSizeMultiplier
+		);
+		self.postMessage({ nodeSizeCache } as NodeSizeResult);
+	}
 };
