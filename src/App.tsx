@@ -234,6 +234,7 @@ function App() {
 	const [nodeSizeCache, setNodeSizeCache] = useState<Record<string, number>>(
 		{}
 	);
+	const [panelVisible, setPanelVisible] = useState(true);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const workerRef = useRef<Worker | null>(null);
@@ -628,9 +629,39 @@ function App() {
 					</button>
 				)}
 			</div>
-			{selectedNode && (
+			{selectedNode && panelVisible && (
 				<div id="node-detail-panel">
-					<h3>{selectedNode.name}</h3>
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+							marginBottom: "15px",
+						}}
+					>
+						<h3 style={{ margin: 0 }}>{selectedNode.name}</h3>
+						<button
+							onClick={() => setPanelVisible(false)}
+							style={{
+								background: "none",
+								border: "none",
+								color: "#d8dee9",
+								fontSize: "20px",
+								cursor: "pointer",
+								padding: "0 4px",
+								lineHeight: 1,
+								transition: "color 0.2s",
+							}}
+							onMouseEnter={e =>
+								(e.currentTarget.style.color = "#eceff4")
+							}
+							onMouseLeave={e =>
+								(e.currentTarget.style.color = "#d8dee9")
+							}
+						>
+							✕
+						</button>
+					</div>
 					<div className="info-item">
 						<strong>链入：</strong> {selectedNode.incomingCount}
 					</div>
@@ -811,6 +842,7 @@ function App() {
 						} else {
 							setSelectedNode(node);
 							setUserInfo(null);
+							setPanelVisible(true);
 							lastClickRef.current = {
 								nodeId: node.id,
 								time: now,
