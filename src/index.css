@@ -1,16 +1,75 @@
-* {
-	margin: 0;
-	padding: 0;
-	box-sizing: border-box;
+#root {
+	width: 100%;
+	height: 100vh;
 }
 
-body {
+@keyframes fade-in {
+	to {
+		opacity: 1;
+	}
+}
+body > * {
+	opacity: 0;
+	animation: fade-in 0.125s ease-out forwards;
+}
+body > * * {
+	opacity: 0;
+	animation: fade-in 0.25s ease-out forwards;
+}
+body * {
+	font-size-adjust: from-font;
+	text-wrap: pretty;
+	overflow-wrap: anywhere;
+}
+
+html {
 	font-family: ui-sans-serif, sans-serif;
+	font-palette: dark;
 	background: #2e3440;
 	color: #eceff4;
 }
 
-#root {
-	width: 100%;
-	height: 100vh;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: ui-serif, serif;
+}
+
+:root {
+	font-size: 18px;
+	color-scheme: dark;
+}
+
+@media not (prefers-reduced-motion: reduce) {
+	@view-transition {
+		navigation: auto;
+	}
+	@keyframes page-out {
+		from {
+			clip-path: circle(100%);
+		}
+		to {
+			clip-path: circle(0);
+		}
+	}
+	@keyframes page-in {
+		from {
+			clip-path: circle(0);
+		}
+		to {
+			clip-path: circle(100%);
+		}
+	}
+	::view-transition-old(root) {
+		animation: 0.25s ease-in both page-out;
+	}
+	::view-transition-new(root) {
+		animation: 0.25s ease-in both page-in 0.25s;
+	}
+	html {
+		scroll-behavior: smooth;
+	}
 }
