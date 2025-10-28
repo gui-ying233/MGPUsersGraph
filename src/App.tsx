@@ -645,12 +645,24 @@ function App() {
 									<span
 										key={tag}
 										className="tag"
+										onClick={() => {
+											setSelectedTags(prev => {
+												const next = new Set(prev);
+												if (next.has(tag)) {
+													next.delete(tag);
+												} else {
+													next.add(tag);
+												}
+												return next;
+											});
+										}}
 										style={{
 											background:
 												config.colorGroups[
 													tag as keyof typeof config.colorGroups
 												],
 											color: "#eceff4",
+											cursor: "pointer",
 										}}
 									>
 										{TAG_DISPLAY_NAMES[

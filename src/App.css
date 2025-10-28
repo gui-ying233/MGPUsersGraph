@@ -175,6 +175,13 @@
 	border: none;
 	flex: auto;
 	line-height: 1;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.tag:hover {
+	opacity: 0.8;
+	transform: scale(1.05);
 }
 
 #user-page-link {
