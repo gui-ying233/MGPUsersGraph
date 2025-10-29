@@ -35,6 +35,7 @@ export const TAG_DISPLAY_NAMES: Record<string, string> = {
 	autoconfirmed: "自动确认用户",
 	"push-subscription-manager": "推送订阅管理员",
 	user: "用户",
+	abuse: "永久封禁",
 };
 
 export const CONFIG: GraphConfig = {
@@ -53,6 +54,7 @@ export const CONFIG: GraphConfig = {
 		flood: "#1E88E5",
 		goodeditor: "#1AA179",
 		"special-contributor": "#595C5F",
+		abuse: "#808080",
 	},
 	e: [
 		"#eceff4",
@@ -69,6 +71,7 @@ export const CONFIG: GraphConfig = {
 		"#1E88E5",
 		"#1AA179",
 		"#595C5F",
+		"#808080",
 	],
 	forces: {
 		centerStrength: 1,

@@ -5,7 +5,7 @@ import os from "os";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(os.homedir(), "MGPUsers");
-const outputDir = path.resolve(__dirname, "../docs/data");
+const outputDir = path.resolve(__dirname, "../public/data");
 
 const TAG_COLOR_MAP = {
 	staff: "#198754",
@@ -22,6 +22,7 @@ const TAG_COLOR_MAP = {
 	flood: "#1E88E5",
 	goodeditor: "#1AA179",
 	"special-contributor": "#595C5F",
+	abuse: "#808080",
 };
 const DEFAULT_COLOR = "#eceff4";
 

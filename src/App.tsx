@@ -565,7 +565,14 @@ function App() {
 		);
 	}
 
-	const allTags = Array.from(new Set(nodes.flatMap(n => n.tags)));
+	const allTags = Array.from(new Set(nodes.flatMap(n => n.tags))).sort((a, b) => {
+		const colorGroupsKeys = Object.keys(config.colorGroups);
+		const indexA = colorGroupsKeys.indexOf(a);
+		const indexB = colorGroupsKeys.indexOf(b);
+		if (indexA === -1) return 1;
+		if (indexB === -1) return -1;
+		return indexA - indexB;
+	});
 
 	return (
 		<div id="app-container">

@@ -13,7 +13,8 @@
     "bot": "#1E88E5",
     "flood": "#1E88E5",
     "goodeditor": "#1AA179",
-    "special-contributor": "#595C5F"
+    "special-contributor": "#595C5F",
+    "abuse": "#808080"
   },
   "e": [
     "#eceff4",
@@ -29,7 +30,8 @@
     "#039BE5",
     "#1E88E5",
     "#1AA179",
-    "#595C5F"
+    "#595C5F",
+    "#808080"
   ],
   "forces": {
     "centerStrength": 1,
@@ -41,5 +43,5 @@
   },
   "nodeSizeMultiplier": 0.247941080729167,
   "lineSizeMultiplier": 0.1,
-  "totalNodes": 10953
+  "totalNodes": 12044
 }
