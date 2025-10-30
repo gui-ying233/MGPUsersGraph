@@ -114,8 +114,6 @@ async function main() {
 		}
 	}
 
-	const nodeIds = new Set(Array.from(nodeMap.entries()).map(([id]) => id));
-
 	const allReferencedIds = new Set();
 	links.forEach(link => {
 		allReferencedIds.add(link.source);

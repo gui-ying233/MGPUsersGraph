@@ -148,7 +148,7 @@ async function fetchUserInfo(
 
 		const blockinfo = user.blockedby
 			? {
-					blockedby: user.blockedby || "",
+					blockedby: user.blockedby,
 					blockid: user.blockid || 0,
 					blockreason: user.blockreason || "",
 					blockexpiry: user.blockexpiry || "",
