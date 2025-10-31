@@ -30,3 +30,8 @@ export interface GraphConfig {
 	lineSizeMultiplier: number;
 	totalNodes: number;
 }
+
+export interface ForceParams {
+	distanceMax: number;
+	centerStrength: number;
+}

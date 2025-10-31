@@ -32,6 +32,16 @@ interface NodeSizeMessage {
 	nodeSizeMultiplier: number;
 }
 
+interface ForceParamsMessage {
+	type: "forceParams";
+	filteredNodes: GraphNode[];
+	filteredLinks: GraphLink[];
+	baseConfig: { centerStrength: number };
+	isFiltered: boolean;
+	canvasWidth: number;
+	canvasHeight: number;
+}
+
 interface FilterResult {
 	filteredNodeIds: string[];
 	filteredLinkIds: string[];
@@ -44,6 +54,11 @@ interface TextCacheResult {
 
 interface NodeSizeResult {
 	nodeSizeCache: Record<string, number>;
+}
+
+interface ForceParamsResult {
+	distanceMax: number;
+	centerStrength: number;
 }
 
 function buildTextLineCache(nodes: GraphNode[]): Record<string, string[]> {
@@ -79,6 +94,44 @@ function buildNodeSizeCache(
 let cachedAllNodesFilterResult: FilterResult | null = null;
 let cachedTextLineCache: Record<string, string[]> | null = null;
 let cachedNodeSizeCache: Record<string, number> | null = null;
+let cachedForceParams: { distanceMax: number; centerStrength: number } | null =
+	null;
+let lastFilteredNodeCount: number | null = null;
+
+function calculateForceParams(
+	filteredNodes: GraphNode[],
+	filteredLinks: GraphLink[],
+	baseConfig: { centerStrength: number },
+	canvasWidth: number,
+	canvasHeight: number
+): { distanceMax: number; centerStrength: number } {
+	const isolatedNodes = filteredNodes.filter(node => {
+		return !filteredLinks.some(
+			link => link.source === node.id || link.target === node.id
+		);
+	});
+
+	if (isolatedNodes.length === 0) {
+		return {
+			distanceMax: Infinity,
+			centerStrength: baseConfig.centerStrength,
+		};
+	}
+
+	const diagonalLength = Math.sqrt(
+		canvasWidth * canvasWidth + canvasHeight * canvasHeight
+	);
+	const distanceMax = diagonalLength / 6;
+
+	const isolatedRatio = isolatedNodes.length / filteredNodes.length;
+	const enhancedCenterStrength =
+		baseConfig.centerStrength * (1 + isolatedRatio * 1.2);
+
+	return {
+		distanceMax,
+		centerStrength: Math.min(enhancedCenterStrength, 3),
+	};
+}
 
 function processFilter(
 	nodes: GraphNode[],
@@ -165,7 +218,14 @@ function processFilter(
 }
 
 self.onmessage = (
-	event: MessageEvent<(FilterMessage | TextCacheMessage | NodeSizeMessage) & { taskId: string }>
+	event: MessageEvent<
+		(
+			| FilterMessage
+			| TextCacheMessage
+			| NodeSizeMessage
+			| ForceParamsMessage
+		) & { taskId: string }
+	>
 ) => {
 	const message = event.data;
 	const { taskId, type } = message;
@@ -247,6 +307,36 @@ self.onmessage = (
 				result: {
 					nodeSizeCache: cachedNodeSizeCache,
 				} as NodeSizeResult,
+			});
+		} else if (type === "forceParams") {
+			const forceMessage = message as ForceParamsMessage;
+			const currentNodeCount = forceMessage.filteredNodes.length;
+
+			if (
+				currentNodeCount === lastFilteredNodeCount &&
+				cachedForceParams
+			) {
+				self.postMessage({
+					taskId,
+					result: cachedForceParams as ForceParamsResult,
+				});
+				return;
+			}
+
+			const result = calculateForceParams(
+				forceMessage.filteredNodes,
+				forceMessage.filteredLinks,
+				forceMessage.baseConfig,
+				forceMessage.canvasWidth,
+				forceMessage.canvasHeight
+			);
+
+			cachedForceParams = result;
+			lastFilteredNodeCount = currentNodeCount;
+
+			self.postMessage({
+				taskId,
+				result: result as ForceParamsResult,
 			});
 		}
 	} catch (error) {

@@ -236,11 +236,17 @@ function App() {
 		{}
 	);
 	const [panelVisible, setPanelVisible] = useState(true);
+	const [forceParams, setForceParams] = useState<{
+		distanceMax: number;
+		centerStrength: number;
+	} | null>(null);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const workerPoolRef = useRef<WorkerPool | null>(null);
 	const batchProcessorRef = useRef<BatchProcessor | null>(null);
 	const lastClickRef = useRef<{ nodeId: string; time: number } | null>(null);
+	const lastFilteredNodeIdsRef = useRef<Set<string>>(new Set());
+	const allNodesCountRef = useRef<number>(0);
 
 	useEffect(() => {
 		workerPoolRef.current = new WorkerPool(
@@ -259,6 +265,9 @@ function App() {
 			}
 			if (result.nodeSizeCache !== undefined) {
 				setNodeSizeCache(result.nodeSizeCache);
+			}
+			if (result.forceParams !== undefined) {
+				setForceParams(result.forceParams);
 			}
 		});
 
@@ -420,8 +429,49 @@ function App() {
 		);
 	}, [links, workerFilteredNodeIds]);
 
+	const isFiltered = useMemo(() => {
+		return searchTerm.trim() !== "" || selectedTags.size > 0;
+	}, [searchTerm, selectedTags]);
+
 	useEffect(() => {
-		if (!graphRef.current || filteredNodes.length === 0) return;
+		if (!workerPoolRef.current) return;
+
+		if (!isFiltered) {
+			setForceParams(null);
+			return;
+		}
+
+		allNodesCountRef.current = nodes.length;
+
+		const taskId = `forceParams-${Date.now()}-${Math.random()}`;
+		batchProcessorRef.current?.registerTask(taskId);
+
+		workerPoolRef.current
+			.addTask(
+				"forceParams",
+				{
+					filteredNodes,
+					filteredLinks,
+					baseConfig: {
+						centerStrength: config?.forces.centerStrength || 1,
+					},
+					canvasWidth: window.innerWidth * 0.9,
+					canvasHeight: window.innerHeight * 0.9,
+				},
+				20
+			)
+			.then(result => {
+				batchProcessorRef.current?.addResult(taskId, result);
+			})
+			.catch(error => {
+				console.error("ForceParams task failed:", error);
+				batchProcessorRef.current?.failTask(taskId);
+			});
+	}, [filteredNodes, filteredLinks, isFiltered, config]);
+
+	useEffect(() => {
+		if (!graphRef.current || filteredNodes.length === 0 || !forceParams)
+			return;
 
 		setTimeout(() => {
 			const centerNode = filteredNodes[0] as GraphNode2D;
@@ -433,13 +483,25 @@ function App() {
 
 	useEffect(() => {
 		if (!config || !graphRef.current) return;
-		graphRef.current
-			.d3Force("charge")
-			.strength(-config.forces.repelStrength);
+
+		const chargeForce = graphRef.current.d3Force("charge");
+		chargeForce.strength(-config.forces.repelStrength);
+
+		if (!forceParams) {
+			chargeForce.distanceMax(Infinity);
+			graphRef.current
+				.d3Force("center")
+				.strength(config.forces.centerStrength);
+		} else {
+			if (forceParams.distanceMax !== Infinity) {
+				chargeForce.distanceMax(forceParams.distanceMax);
+			}
+			graphRef.current
+				.d3Force("center")
+				.strength(forceParams.centerStrength);
+		}
+
 		graphRef.current.d3Force("link").distance(config.forces.linkDistance);
-		graphRef.current
-			.d3Force("center")
-			.strength(config.forces.centerStrength);
 
 		const simulation = graphRef.current.d3Force("simulation");
 		if (simulation) {
@@ -447,7 +509,27 @@ function App() {
 			simulation.alphaMin(config.forces.alphaMin || 0.001);
 			simulation.velocityDecay(0.4);
 		}
-	}, [config]);
+	}, [config, forceParams]);
+
+	useEffect(() => {
+		if (!graphRef.current || filteredNodes.length === 0) return;
+
+		const simulation = graphRef.current.d3Force("simulation");
+		if (!simulation) return;
+
+		const currentNodeIds = new Set(filteredNodes.map(n => n.id));
+		const prevNodeIds = lastFilteredNodeIdsRef.current;
+
+		if (
+			currentNodeIds.size !== prevNodeIds.size ||
+			Array.from(currentNodeIds).some(id => !prevNodeIds.has(id))
+		) {
+			simulation.alpha(0.3);
+			simulation.restart();
+		}
+
+		lastFilteredNodeIdsRef.current = currentNodeIds;
+	}, [filteredNodes, filteredLinks]);
 
 	useEffect(() => {
 		if (selectedNode && !userInfo && !loadingUserInfo) {

@@ -1,7 +1,7 @@
 interface Task {
 	id: string;
 	priority: number;
-	type: "filter" | "textCache" | "nodeSize";
+	type: "filter" | "textCache" | "nodeSize" | "forceParams";
 	data: any;
 	resolve: (value: any) => void;
 	reject: (reason: any) => void;
@@ -59,7 +59,7 @@ export class WorkerPool {
 		});
 	}
 
-	addTask<T>(type: "filter" | "textCache" | "nodeSize", data: any, priority: number = 50): Promise<T> {
+	addTask<T>(type: "filter" | "textCache" | "nodeSize" | "forceParams", data: any, priority: number = 50): Promise<T> {
 		return new Promise((resolve, reject) => {
 			const taskId = `${type}-${Date.now()}-${Math.random()}`;
 			const task = { id: taskId, type, priority, data, resolve, reject };
@@ -127,6 +127,8 @@ export class BatchProcessor {
 				batch.textLineCache = result.textLineCache;
 			} else if (taskId.startsWith("nodeSize-")) {
 				batch.nodeSizeCache = result.nodeSizeCache;
+			} else if (taskId.startsWith("forceParams-")) {
+				batch.forceParams = result;
 			}
 		});
 
