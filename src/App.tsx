@@ -787,6 +787,24 @@ function App() {
 									return next;
 								});
 							}}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									setSelectedTags(prev => {
+										const next = new Set(prev);
+										if (next.has(tag)) {
+											next.delete(tag);
+										} else {
+											next.add(tag);
+										}
+										return next;
+									});
+								}
+							}}
+							aria-pressed={selectedTags.has(tag)}
+							title={`${selectedTags.has(tag) ? '移除' : '添加'}标签：${TAG_DISPLAY_NAMES[
+								tag as keyof typeof TAG_DISPLAY_NAMES
+							] || tag}`}
 							style={
 								selectedTags.has(tag)
 									? {
@@ -808,6 +826,14 @@ function App() {
 					<button
 						className="clear-filters-btn"
 						onClick={() => setSelectedTags(new Set())}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								setSelectedTags(new Set());
+							}
+						}}
+						aria-label={`清除筛选（当前选中 ${selectedTags.size} 个标签）`}
+						title="清除所有标签筛选"
 					>
 						清除筛选
 					</button>
@@ -826,6 +852,13 @@ function App() {
 						<h3 style={{ margin: 0 }}>{selectedNode.name}</h3>
 						<button
 							onClick={() => setPanelVisible(false)}
+							onKeyDown={(e) => {
+								if (e.key === 'Escape' || e.key === 'Enter') {
+									setPanelVisible(false);
+								}
+							}}
+							aria-label="关闭详情面板"
+							title="关闭详情面板"
 							style={{
 								background: "none",
 								border: "none",
@@ -835,6 +868,11 @@ function App() {
 								padding: "0 4px",
 								lineHeight: 1,
 								transition: "color 0.2s",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								minWidth: "28px",
+								minHeight: "28px",
 							}}
 							onMouseEnter={e =>
 								(e.currentTarget.style.color = "#eceff4")
@@ -857,7 +895,7 @@ function App() {
 						{selectedNode.tags.length > 0 ? (
 							<div id="tags">
 								{selectedNode.tags.map(tag => (
-									<span
+									<button
 										key={tag}
 										className="tag"
 										onClick={() => {
@@ -871,6 +909,24 @@ function App() {
 												return next;
 											});
 										}}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												setSelectedTags(prev => {
+													const next = new Set(prev);
+													if (next.has(tag)) {
+														next.delete(tag);
+													} else {
+														next.add(tag);
+													}
+													return next;
+												});
+											}
+										}}
+										aria-pressed={selectedTags.has(tag)}
+										title={`${selectedTags.has(tag) ? '移除' : '添加'}标签：${TAG_DISPLAY_NAMES[
+											tag as keyof typeof TAG_DISPLAY_NAMES
+										] || tag}`}
 										style={{
 											background:
 												config.colorGroups[
@@ -878,12 +934,18 @@ function App() {
 												],
 											color: "#eceff4",
 											cursor: "pointer",
+											border: "none",
+											borderRadius: "4px",
+											padding: "4px 8px",
+											fontSize: "14px",
+											fontWeight: "500",
+											transition: "opacity 0.2s",
 										}}
 									>
 										{TAG_DISPLAY_NAMES[
 											tag as keyof typeof TAG_DISPLAY_NAMES
 										] || tag}
-									</span>
+									</button>
 								))}
 							</div>
 						) : (
@@ -982,7 +1044,25 @@ function App() {
 							setUserInfo(info);
 							setLoadingUserInfo(false);
 						}}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								if (!loadingUserInfo) {
+									(async () => {
+										setLoadingUserInfo(true);
+										const info = await fetchUserInfo(
+											selectedNode.name,
+											!!userInfo
+										);
+										setUserInfo(info);
+										setLoadingUserInfo(false);
+									})();
+								}
+							}
+						}}
 						disabled={loadingUserInfo}
+						aria-busy={loadingUserInfo}
+						title={loadingUserInfo ? '正在加载...' : (userInfo ? '重新获取最新信息' : '加载更多信息')}
 						style={{
 							opacity: loadingUserInfo ? 0.6 : 1,
 							cursor: loadingUserInfo ? "default" : "pointer",
@@ -1053,6 +1133,14 @@ function App() {
 				/>
 				<button
 					onClick={handleCenterGraph}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							handleCenterGraph();
+						}
+					}}
+					aria-label="居中图表"
+					title="按 Enter 或 Space 键也可以居中"
 					style={{
 						position: "fixed",
 						bottom: "20px",
@@ -1067,6 +1155,11 @@ function App() {
 						fontWeight: "500",
 						zIndex: 10,
 						transition: "all 0.3s ease",
+						minWidth: "44px",
+						minHeight: "44px",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
 					}}
 					onMouseEnter={e => {
 						const btn = e.currentTarget;

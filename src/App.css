@@ -38,10 +38,28 @@
 	box-sizing: border-box;
 	background: #2e3440;
 	color: #eceff4;
+	transition: border-color 0.2s, outline 0.2s;
 }
 
 .search-input::placeholder {
 	color: #a3be8c;
+}
+
+.search-input:focus {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+	border-color: #81a1c1;
+}
+
+.search-input:focus:not(:focus-visible) {
+	outline: none;
+	border-color: #434c5e;
+}
+
+.search-input:focus-visible {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+	border-color: #81a1c1;
 }
 
 .clear-filters-btn {
@@ -53,7 +71,7 @@
 	border-radius: 4px;
 	font-size: 12px;
 	cursor: pointer;
-	transition: background 0.2s;
+	transition: background 0.2s, outline 0.2s;
 	appearance: none;
 	-webkit-appearance: none;
 	-moz-appearance: none;
@@ -62,6 +80,20 @@
 
 .clear-filters-btn:hover {
 	background: #d08770;
+}
+
+.clear-filters-btn:focus {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+}
+
+.clear-filters-btn:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.clear-filters-btn:focus-visible {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
 }
 
 .tag-filters {
@@ -90,6 +122,20 @@
 	background: #3b4252;
 	border-color: #5e81ac;
 	color: #eceff4;
+}
+
+.tag-filter:focus {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+}
+
+.tag-filter:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.tag-filter:focus-visible {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
 }
 
 .tag-filter.active {
@@ -184,6 +230,20 @@
 	transform: scale(1.05);
 }
 
+.tag:focus {
+	outline: 2px solid #eceff4;
+	outline-offset: 2px;
+}
+
+.tag:focus:not(:focus-visible) {
+	outline: none;
+}
+
+.tag:focus-visible {
+	outline: 2px solid #eceff4;
+	outline-offset: 2px;
+}
+
 #user-page-link {
 	display: inline-block;
 	margin-top: 12px;
@@ -193,12 +253,26 @@
 	text-decoration: none;
 	border-radius: 4px;
 	font-size: 14px;
-	transition: background-color 0.3s ease;
+	transition: background-color 0.3s ease, outline 0.2s;
 	text-align: center;
 }
 
 #user-page-link:hover {
 	background: #5a6578;
+}
+
+#user-page-link:focus {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+}
+
+#user-page-link:focus:not(:focus-visible) {
+	outline: none;
+}
+
+#user-page-link:focus-visible {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
 }
 
 #load-user-info-btn {
@@ -212,12 +286,26 @@
 	border-radius: 4px;
 	font-size: 14px;
 	cursor: pointer;
-	transition: background-color 0.3s ease;
+	transition: background-color 0.3s ease, outline 0.2s;
 	box-sizing: border-box;
 }
 
 #load-user-info-btn:hover:not(:disabled) {
 	background: #81a1c1;
+}
+
+#load-user-info-btn:focus {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
+}
+
+#load-user-info-btn:focus:not(:focus-visible) {
+	outline: none;
+}
+
+#load-user-info-btn:focus-visible {
+	outline: 2px solid #81a1c1;
+	outline-offset: 2px;
 }
 
 #load-user-info-btn:disabled {
