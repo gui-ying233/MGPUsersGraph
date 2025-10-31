@@ -271,16 +271,9 @@ self.onmessage = (
 			}
 		} else if (type === "textCache") {
 			const textMessage = message as TextCacheMessage;
-			if (cachedTextLineCache) {
-				self.postMessage({
-					taskId,
-					result: {
-						textLineCache: cachedTextLineCache,
-					} as TextCacheResult,
-				});
-				return;
+			if (!cachedTextLineCache) {
+				cachedTextLineCache = buildTextLineCache(textMessage.nodes);
 			}
-			cachedTextLineCache = buildTextLineCache(textMessage.nodes);
 			self.postMessage({
 				taskId,
 				result: {
@@ -289,19 +282,12 @@ self.onmessage = (
 			});
 		} else if (type === "nodeSize") {
 			const nodeSizeMessage = message as NodeSizeMessage;
-			if (cachedNodeSizeCache) {
-				self.postMessage({
-					taskId,
-					result: {
-						nodeSizeCache: cachedNodeSizeCache,
-					} as NodeSizeResult,
-				});
-				return;
+			if (!cachedNodeSizeCache) {
+				cachedNodeSizeCache = buildNodeSizeCache(
+					nodeSizeMessage.nodes,
+					nodeSizeMessage.nodeSizeMultiplier
+				);
 			}
-			cachedNodeSizeCache = buildNodeSizeCache(
-				nodeSizeMessage.nodes,
-				nodeSizeMessage.nodeSizeMultiplier
-			);
 			self.postMessage({
 				taskId,
 				result: {

@@ -240,8 +240,10 @@ function App() {
 		distanceMax: number;
 		centerStrength: number;
 	} | null>(null);
+	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const workerPoolRef = useRef<WorkerPool | null>(null);
 	const batchProcessorRef = useRef<BatchProcessor | null>(null);
 	const lastClickRef = useRef<{ nodeId: string; time: number } | null>(null);
@@ -560,7 +562,7 @@ function App() {
 
 	useEffect(() => {
 		if (
-			filteredNodes.length === 0 ||
+			nodes.length === 0 ||
 			!config ||
 			!workerPoolRef.current ||
 			!batchProcessorRef.current
@@ -575,7 +577,7 @@ function App() {
 		batchProcessorRef.current.registerTask(nodeSizeTaskId);
 
 		workerPoolRef.current
-			.addTask("textCache", { nodes: filteredNodes }, 50)
+			.addTask("textCache", { nodes }, 50)
 			.then(result => {
 				batchProcessorRef.current?.addResult(textCacheTaskId, result);
 			})
@@ -588,7 +590,7 @@ function App() {
 			.addTask(
 				"nodeSize",
 				{
-					nodes: filteredNodes,
+					nodes,
 					nodeSizeMultiplier: config.nodeSizeMultiplier,
 				},
 				50
@@ -600,7 +602,19 @@ function App() {
 				console.error("NodeSize task failed:", error);
 				batchProcessorRef.current?.failTask(nodeSizeTaskId);
 			});
-	}, [filteredNodes, config]);
+	}, [nodes, config]);
+
+	const connectedNodesMap = useMemo(() => {
+		const map = new Map<string, Set<string>>();
+		filteredNodes.forEach(node => {
+			map.set(node.id, new Set());
+		});
+		filteredLinks.forEach(link => {
+			map.get(link.source)?.add(link.target);
+			map.get(link.target)?.add(link.source);
+		});
+		return map;
+	}, [filteredNodes, filteredLinks]);
 
 	const handleNodeCanvasObject = useCallback(
 		(node: GraphNode2D, ctx: CanvasRenderingContext2D) => {
@@ -609,7 +623,21 @@ function App() {
 				nodeSizeCache[node.id] ??
 				Math.sqrt(node.incomingCount + node.outgoingCount || 1) *
 					config.nodeSizeMultiplier;
-			ctx.fillStyle = node.color;
+
+			let fillStyle = node.color;
+			if (
+				hoveredNodeId &&
+				node.id !== hoveredNodeId &&
+				!connectedNodesMap.get(hoveredNodeId)?.has(node.id)
+			) {
+				const rgb = parseInt(node.color.slice(1), 16);
+				const r = (rgb >> 16) & 255;
+				const g = (rgb >> 8) & 255;
+				const b = rgb & 255;
+				fillStyle = `rgba(${r},${g},${b},0.1)`;
+			}
+
+			ctx.fillStyle = fillStyle;
 			ctx.beginPath();
 			ctx.arc(node.x ?? 0, node.y ?? 0, size, 0, 2 * Math.PI);
 			ctx.fill();
@@ -623,7 +651,15 @@ function App() {
 			}
 
 			if (zoomLevel > 1) {
-				ctx.fillStyle = "#d8dee9";
+				let textOpacity = 1;
+				if (
+					hoveredNodeId &&
+					node.id !== hoveredNodeId &&
+					!connectedNodesMap.get(hoveredNodeId)?.has(node.id)
+				) {
+					textOpacity = 0.1;
+				}
+				ctx.fillStyle = `rgba(216,222,233,${textOpacity})`;
 				const fontSize = Math.max(2, Math.min(16, size * 1.2));
 				ctx.font = `${fontSize}px ui-sans-serif, sans-serif`;
 				ctx.textAlign = "center";
@@ -642,19 +678,32 @@ function App() {
 				});
 			}
 		},
-		[config, workerSearchedNodeId, zoomLevel, textLineCache, nodeSizeCache]
+		[
+			config,
+			workerSearchedNodeId,
+			zoomLevel,
+			textLineCache,
+			nodeSizeCache,
+			hoveredNodeId,
+			connectedNodesMap,
+		]
 	);
 	const handleLinkCanvasObject = useCallback(
 		(link: LinkWithCoords, ctx: CanvasRenderingContext2D) => {
 			if (!config) return;
-			ctx.strokeStyle = "rgba(255,255,255,0.1)";
+			ctx.strokeStyle =
+				hoveredNodeId &&
+				(link.source.id === hoveredNodeId ||
+					link.target.id === hoveredNodeId)
+					? "rgba(255,255,255,0.5)"
+					: "rgba(255,255,255,0.1)";
 			ctx.lineWidth = config.lineSizeMultiplier;
 			ctx.beginPath();
 			ctx.moveTo(link.source.x ?? 0, link.source.y ?? 0);
 			ctx.lineTo(link.target.x ?? 0, link.target.y ?? 0);
 			ctx.stroke();
 		},
-		[config]
+		[config, hoveredNodeId]
 	);
 
 	const handleNodeLabel = useCallback(
@@ -983,6 +1032,14 @@ function App() {
 								time: now,
 							};
 						}
+					}}
+					onNodeHover={(node: GraphNode2D | null) => {
+						if (hoverTimeoutRef.current) {
+							clearTimeout(hoverTimeoutRef.current);
+						}
+						hoverTimeoutRef.current = setTimeout(() => {
+							setHoveredNodeId(node?.id || null);
+						}, 50);
 					}}
 					onZoom={handleZoom}
 					warmupTicks={10}
