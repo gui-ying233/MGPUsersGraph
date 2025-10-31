@@ -714,11 +714,11 @@ function App() {
 
 			let strokeStyle = "rgba(255,255,255,0.1)";
 			if (isNodeHoverConnected) {
-				strokeStyle = "rgba(255,255,255,0.5)";
+				strokeStyle = "#FFF";
 			} else if (hoveredTagId && !isTagHighlight) {
 				strokeStyle = "rgba(255,255,255,0.1)";
 			} else if (isTagHighlight) {
-				strokeStyle = "rgba(255,255,255,1)";
+				strokeStyle = "#FFF";
 			}
 
 			ctx.strokeStyle = strokeStyle;
