@@ -76,7 +76,7 @@ function getAllMarkdownFiles() {
 	return files;
 }
 
-async function main() {
+(() => {
 	console.log("Generating graph data...");
 
 	const files = getAllMarkdownFiles();
@@ -138,7 +138,7 @@ async function main() {
 		.filter(([id]) => linkedNodeIds.has(id))
 		.map(([id, node]) => {
 			let color = TAG_COLOR_MAP[node.tags[0]] || DEFAULT_COLOR;
-			
+
 			return {
 				id,
 				name: node.name,
@@ -185,6 +185,4 @@ async function main() {
 
 	console.log(`Generated graph for ${filteredNodes.length} nodes`);
 	console.log(`Total links: ${validLinks.length}`);
-}
-
-main().catch(console.error);
+})();
