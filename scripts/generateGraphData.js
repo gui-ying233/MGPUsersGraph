@@ -196,28 +196,7 @@ async function main() {
 		JSON.stringify({ d: nodeDict, l: compressedLinks }, null, 0)
 	);
 
-	const config = {
-		colorGroups: TAG_COLOR_MAP,
-		e: enumColors,
-		forces: {
-			centerStrength: 1,
-			repelStrength: 40,
-			linkStrength: 2,
-			linkDistance: 30,
-			alpha: 0.1,
-			alphaMin: 0.001,
-		},
-		nodeSizeMultiplier: 0.247941080729167,
-		lineSizeMultiplier: 0.1,
-		totalNodes: filteredNodes.length,
-	};
-
-	fs.writeFileSync(
-		path.resolve(outputDir, "config.json"),
-		JSON.stringify(config, null, 2)
-	);
-
-	console.log(`Generated config for ${filteredNodes.length} nodes`);
+	console.log(`Generated graph for ${filteredNodes.length} nodes`);
 	console.log(`Total links: ${validLinks.length}`);
 }
 
