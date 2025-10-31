@@ -27,6 +27,7 @@ html {
 	font-palette: dark;
 	background: #2e3440;
 	color: #eceff4;
+	overflow: hidden;
 }
 
 h1,

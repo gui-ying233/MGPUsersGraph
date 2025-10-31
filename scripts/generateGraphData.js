@@ -139,19 +139,6 @@ async function main() {
 		.map(([id, node]) => {
 			let color = TAG_COLOR_MAP[node.tags[0]] || DEFAULT_COLOR;
 			
-			if (node.tags.length === 0 && validLinks.length > 0) {
-				for (const link of validLinks) {
-					if (link.source === id || link.target === id) {
-						const connectedId = link.source === id ? link.target : link.source;
-						const connectedNode = nodeMap.get(connectedId);
-						if (connectedNode?.tags.length > 0) {
-							color = TAG_COLOR_MAP[connectedNode.tags[0]] || DEFAULT_COLOR;
-							break;
-						}
-					}
-				}
-			}
-			
 			return {
 				id,
 				name: node.name,

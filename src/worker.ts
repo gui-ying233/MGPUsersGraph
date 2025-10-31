@@ -165,66 +165,94 @@ function processFilter(
 }
 
 self.onmessage = (
-	event: MessageEvent<FilterMessage | TextCacheMessage | NodeSizeMessage>
+	event: MessageEvent<(FilterMessage | TextCacheMessage | NodeSizeMessage) & { taskId: string }>
 ) => {
 	const message = event.data;
+	const { taskId, type } = message;
 
-	if (message.type === "filter") {
-		const filterMessage = message as FilterMessage;
-		if (
-			filterMessage.searchTerm.trim() === "" &&
-			filterMessage.selectedTags.length === 0
-		) {
-			if (cachedAllNodesFilterResult) {
-				self.postMessage(cachedAllNodesFilterResult);
-				return;
-			}
-			const result = processFilter(
-				filterMessage.nodes,
-				filterMessage.links,
-				filterMessage.searchTerm,
-				filterMessage.selectedTags,
-				filterMessage.tagIndexCache
-			);
-			cachedAllNodesFilterResult = result;
-			self.postMessage(result);
-		} else {
-			self.postMessage(
-				processFilter(
+	try {
+		if (type === "filter") {
+			const filterMessage = message as FilterMessage;
+			if (
+				filterMessage.searchTerm.trim() === "" &&
+				filterMessage.selectedTags.length === 0
+			) {
+				if (cachedAllNodesFilterResult) {
+					self.postMessage({
+						taskId,
+						result: cachedAllNodesFilterResult,
+					});
+					return;
+				}
+				const result = processFilter(
 					filterMessage.nodes,
 					filterMessage.links,
 					filterMessage.searchTerm,
 					filterMessage.selectedTags,
 					filterMessage.tagIndexCache
-				)
+				);
+				cachedAllNodesFilterResult = result;
+				self.postMessage({
+					taskId,
+					result,
+				});
+			} else {
+				const result = processFilter(
+					filterMessage.nodes,
+					filterMessage.links,
+					filterMessage.searchTerm,
+					filterMessage.selectedTags,
+					filterMessage.tagIndexCache
+				);
+				self.postMessage({
+					taskId,
+					result,
+				});
+			}
+		} else if (type === "textCache") {
+			const textMessage = message as TextCacheMessage;
+			if (cachedTextLineCache) {
+				self.postMessage({
+					taskId,
+					result: {
+						textLineCache: cachedTextLineCache,
+					} as TextCacheResult,
+				});
+				return;
+			}
+			cachedTextLineCache = buildTextLineCache(textMessage.nodes);
+			self.postMessage({
+				taskId,
+				result: {
+					textLineCache: cachedTextLineCache,
+				} as TextCacheResult,
+			});
+		} else if (type === "nodeSize") {
+			const nodeSizeMessage = message as NodeSizeMessage;
+			if (cachedNodeSizeCache) {
+				self.postMessage({
+					taskId,
+					result: {
+						nodeSizeCache: cachedNodeSizeCache,
+					} as NodeSizeResult,
+				});
+				return;
+			}
+			cachedNodeSizeCache = buildNodeSizeCache(
+				nodeSizeMessage.nodes,
+				nodeSizeMessage.nodeSizeMultiplier
 			);
-		}
-	} else if (message.type === "textCache") {
-		const textMessage = message as TextCacheMessage;
-		if (cachedTextLineCache) {
 			self.postMessage({
-				textLineCache: cachedTextLineCache,
-			} as TextCacheResult);
-			return;
+				taskId,
+				result: {
+					nodeSizeCache: cachedNodeSizeCache,
+				} as NodeSizeResult,
+			});
 		}
-		cachedTextLineCache = buildTextLineCache(textMessage.nodes);
+	} catch (error) {
 		self.postMessage({
-			textLineCache: cachedTextLineCache,
-		} as TextCacheResult);
-	} else if (message.type === "nodeSize") {
-		const nodeSizeMessage = message as NodeSizeMessage;
-		if (cachedNodeSizeCache) {
-			self.postMessage({
-				nodeSizeCache: cachedNodeSizeCache,
-			} as NodeSizeResult);
-			return;
-		}
-		cachedNodeSizeCache = buildNodeSizeCache(
-			nodeSizeMessage.nodes,
-			nodeSizeMessage.nodeSizeMultiplier
-		);
-		self.postMessage({
-			nodeSizeCache: cachedNodeSizeCache,
-		} as NodeSizeResult);
+			taskId,
+			error: error instanceof Error ? error.message : "Unknown error",
+		});
 	}
 };

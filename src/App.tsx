@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { CONFIG, TAG_DISPLAY_NAMES, type GraphConfig } from "./config";
+import { WorkerPool, BatchProcessor } from "./workerPool";
 import "./App.css";
 
 interface UserInfo {
@@ -237,36 +238,33 @@ function App() {
 	const [panelVisible, setPanelVisible] = useState(true);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const workerRef = useRef<Worker | null>(null);
+	const workerPoolRef = useRef<WorkerPool | null>(null);
+	const batchProcessorRef = useRef<BatchProcessor | null>(null);
 	const lastClickRef = useRef<{ nodeId: string; time: number } | null>(null);
 
 	useEffect(() => {
-		workerRef.current = new Worker(
-			new URL("./worker.ts", import.meta.url),
-			{ type: "module" }
+		workerPoolRef.current = new WorkerPool(
+			Math.ceil((navigator.hardwareConcurrency || 4) / 2)
 		);
-		workerRef.current.onmessage = (
-			event: MessageEvent<{
-				filteredNodeIds?: string[];
-				filteredLinkIds?: string[];
-				searchedNodeId?: string | null;
-				textLineCache?: Record<string, string[]>;
-				nodeSizeCache?: Record<string, number>;
-			}>
-		) => {
-			if (event.data.filteredNodeIds !== undefined) {
-				setWorkerFilteredNodeIds(new Set(event.data.filteredNodeIds));
-				setWorkerSearchedNodeId(event.data.searchedNodeId || null);
+
+		batchProcessorRef.current = new BatchProcessor(50);
+
+		batchProcessorRef.current.onUpdate(result => {
+			if (result.filteredNodeIds !== undefined) {
+				setWorkerFilteredNodeIds(result.filteredNodeIds);
+				setWorkerSearchedNodeId(result.searchedNodeId || null);
 			}
-			if (event.data.textLineCache !== undefined) {
-				setTextLineCache(event.data.textLineCache);
+			if (result.textLineCache !== undefined) {
+				setTextLineCache(result.textLineCache);
 			}
-			if (event.data.nodeSizeCache !== undefined) {
-				setNodeSizeCache(event.data.nodeSizeCache);
+			if (result.nodeSizeCache !== undefined) {
+				setNodeSizeCache(result.nodeSizeCache);
 			}
-		};
+		});
+
 		return () => {
-			workerRef.current?.terminate();
+			workerPoolRef.current?.terminate();
+			batchProcessorRef.current?.clear();
 		};
 	}, []);
 
@@ -377,22 +375,37 @@ function App() {
 		if (searchTerm.trim() === "" && selectedTags.size === 0) {
 			setWorkerFilteredNodeIds(new Set(nodes.map(n => n.id)));
 			setWorkerSearchedNodeId(null);
-			return;
+		} else {
+			const cacheObj: Record<string, string[]> = {};
+			tagIndexCache.forEach((ids, tag) => {
+				cacheObj[tag] = Array.from(ids);
+			});
+
+			if (workerPoolRef.current && batchProcessorRef.current) {
+				const taskId = `filter-${Date.now()}-${Math.random()}`;
+				batchProcessorRef.current.registerTask(taskId);
+
+				workerPoolRef.current
+					.addTask(
+						"filter",
+						{
+							nodes,
+							links,
+							searchTerm,
+							selectedTags: Array.from(selectedTags),
+							tagIndexCache: cacheObj,
+						},
+						10
+					)
+					.then(result => {
+						batchProcessorRef.current?.addResult(taskId, result);
+					})
+					.catch(error => {
+						console.error("Filter task failed:", error);
+						batchProcessorRef.current?.failTask(taskId);
+					});
+			}
 		}
-
-		const cacheObj: Record<string, string[]> = {};
-		tagIndexCache.forEach((ids, tag) => {
-			cacheObj[tag] = Array.from(ids);
-		});
-
-		workerRef.current?.postMessage({
-			type: "filter",
-			nodes,
-			links,
-			searchTerm,
-			selectedTags: Array.from(selectedTags),
-			tagIndexCache: cacheObj,
-		});
 	}, [searchTerm, selectedTags, tagIndexCache, nodes, links]);
 
 	const filteredNodes = useMemo(() => {
@@ -464,16 +477,47 @@ function App() {
 	}, [filteredNodes, filteredLinks]);
 
 	useEffect(() => {
-		if (filteredNodes.length === 0 || !config) return;
-		workerRef.current?.postMessage({
-			type: "textCache",
-			nodes: filteredNodes,
-		});
-		workerRef.current?.postMessage({
-			type: "nodeSize",
-			nodes: filteredNodes,
-			nodeSizeMultiplier: config.nodeSizeMultiplier,
-		});
+		if (
+			filteredNodes.length === 0 ||
+			!config ||
+			!workerPoolRef.current ||
+			!batchProcessorRef.current
+		) {
+			return;
+		}
+
+		const textCacheTaskId = `textCache-${Date.now()}-${Math.random()}`;
+		const nodeSizeTaskId = `nodeSize-${Date.now()}-${Math.random()}`;
+
+		batchProcessorRef.current.registerTask(textCacheTaskId);
+		batchProcessorRef.current.registerTask(nodeSizeTaskId);
+
+		workerPoolRef.current
+			.addTask("textCache", { nodes: filteredNodes }, 50)
+			.then(result => {
+				batchProcessorRef.current?.addResult(textCacheTaskId, result);
+			})
+			.catch(error => {
+				console.error("TextCache task failed:", error);
+				batchProcessorRef.current?.failTask(textCacheTaskId);
+			});
+
+		workerPoolRef.current
+			.addTask(
+				"nodeSize",
+				{
+					nodes: filteredNodes,
+					nodeSizeMultiplier: config.nodeSizeMultiplier,
+				},
+				50
+			)
+			.then(result => {
+				batchProcessorRef.current?.addResult(nodeSizeTaskId, result);
+			})
+			.catch(error => {
+				console.error("NodeSize task failed:", error);
+				batchProcessorRef.current?.failTask(nodeSizeTaskId);
+			});
 	}, [filteredNodes, config]);
 
 	const handleNodeCanvasObject = useCallback(
