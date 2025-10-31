@@ -241,6 +241,7 @@ function App() {
 		centerStrength: number;
 	} | null>(null);
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+	const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -625,11 +626,20 @@ function App() {
 					config.nodeSizeMultiplier;
 
 			let fillStyle = node.color;
-			if (
+			const isHoveredNodeConnected =
 				hoveredNodeId &&
-				node.id !== hoveredNodeId &&
-				!connectedNodesMap.get(hoveredNodeId)?.has(node.id)
-			) {
+				(node.id === hoveredNodeId ||
+					connectedNodesMap.get(hoveredNodeId)?.has(node.id));
+			const isHoveredTagMatch =
+				hoveredTagId && node.tags.includes(hoveredTagId);
+
+			if (hoveredNodeId && !isHoveredNodeConnected) {
+				const rgb = parseInt(node.color.slice(1), 16);
+				const r = (rgb >> 16) & 255;
+				const g = (rgb >> 8) & 255;
+				const b = rgb & 255;
+				fillStyle = `rgba(${r},${g},${b},0.1)`;
+			} else if (hoveredTagId && !isHoveredTagMatch) {
 				const rgb = parseInt(node.color.slice(1), 16);
 				const r = (rgb >> 16) & 255;
 				const g = (rgb >> 8) & 255;
@@ -652,11 +662,9 @@ function App() {
 
 			if (zoomLevel > 1) {
 				let textOpacity = 1;
-				if (
-					hoveredNodeId &&
-					node.id !== hoveredNodeId &&
-					!connectedNodesMap.get(hoveredNodeId)?.has(node.id)
-				) {
+				if (hoveredNodeId && !isHoveredNodeConnected) {
+					textOpacity = 0.1;
+				} else if (hoveredTagId && !isHoveredTagMatch) {
 					textOpacity = 0.1;
 				}
 				ctx.fillStyle = `rgba(216,222,233,${textOpacity})`;
@@ -685,25 +693,39 @@ function App() {
 			textLineCache,
 			nodeSizeCache,
 			hoveredNodeId,
+			hoveredTagId,
 			connectedNodesMap,
 		]
 	);
 	const handleLinkCanvasObject = useCallback(
 		(link: LinkWithCoords, ctx: CanvasRenderingContext2D) => {
 			if (!config) return;
-			ctx.strokeStyle =
+			const isNodeHoverConnected =
 				hoveredNodeId &&
 				(link.source.id === hoveredNodeId ||
-					link.target.id === hoveredNodeId)
-					? "rgba(255,255,255,0.5)"
-					: "rgba(255,255,255,0.1)";
+					link.target.id === hoveredNodeId);
+			const isTagHighlight =
+				hoveredTagId &&
+				link.source.tags.includes(hoveredTagId) &&
+				link.target.tags.includes(hoveredTagId);
+
+			let strokeStyle = "rgba(255,255,255,0.1)";
+			if (isNodeHoverConnected) {
+				strokeStyle = "rgba(255,255,255,0.5)";
+			} else if (hoveredTagId && !isTagHighlight) {
+				strokeStyle = "rgba(255,255,255,0.1)";
+			} else if (isTagHighlight) {
+				strokeStyle = "rgba(255,255,255,1)";
+			}
+
+			ctx.strokeStyle = strokeStyle;
 			ctx.lineWidth = config.lineSizeMultiplier;
 			ctx.beginPath();
 			ctx.moveTo(link.source.x ?? 0, link.source.y ?? 0);
 			ctx.lineTo(link.target.x ?? 0, link.target.y ?? 0);
 			ctx.stroke();
 		},
-		[config, hoveredNodeId]
+		[config, hoveredNodeId, hoveredTagId]
 	);
 
 	const handleNodeLabel = useCallback(
@@ -787,8 +809,8 @@ function App() {
 									return next;
 								});
 							}}
-							onKeyDown={(e) => {
-								if (e.key === 'Enter' || e.key === ' ') {
+							onKeyDown={e => {
+								if (e.key === "Enter" || e.key === " ") {
 									e.preventDefault();
 									setSelectedTags(prev => {
 										const next = new Set(prev);
@@ -802,9 +824,15 @@ function App() {
 								}
 							}}
 							aria-pressed={selectedTags.has(tag)}
-							title={`${selectedTags.has(tag) ? '移除' : '添加'}标签：${TAG_DISPLAY_NAMES[
-								tag as keyof typeof TAG_DISPLAY_NAMES
-							] || tag}`}
+							title={`${
+								selectedTags.has(tag) ? "移除" : "添加"
+							}标签：${
+								TAG_DISPLAY_NAMES[
+									tag as keyof typeof TAG_DISPLAY_NAMES
+								] || tag
+							}`}
+							onMouseEnter={() => setHoveredTagId(tag)}
+							onMouseLeave={() => setHoveredTagId(null)}
 							style={
 								selectedTags.has(tag)
 									? {
@@ -826,8 +854,8 @@ function App() {
 					<button
 						className="clear-filters-btn"
 						onClick={() => setSelectedTags(new Set())}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
+						onKeyDown={e => {
+							if (e.key === "Enter" || e.key === " ") {
 								e.preventDefault();
 								setSelectedTags(new Set());
 							}
@@ -852,8 +880,8 @@ function App() {
 						<h3 style={{ margin: 0 }}>{selectedNode.name}</h3>
 						<button
 							onClick={() => setPanelVisible(false)}
-							onKeyDown={(e) => {
-								if (e.key === 'Escape' || e.key === 'Enter') {
+							onKeyDown={e => {
+								if (e.key === "Escape" || e.key === "Enter") {
 									setPanelVisible(false);
 								}
 							}}
@@ -909,8 +937,11 @@ function App() {
 												return next;
 											});
 										}}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter' || e.key === ' ') {
+										onKeyDown={e => {
+											if (
+												e.key === "Enter" ||
+												e.key === " "
+											) {
 												e.preventDefault();
 												setSelectedTags(prev => {
 													const next = new Set(prev);
@@ -924,9 +955,21 @@ function App() {
 											}
 										}}
 										aria-pressed={selectedTags.has(tag)}
-										title={`${selectedTags.has(tag) ? '移除' : '添加'}标签：${TAG_DISPLAY_NAMES[
-											tag as keyof typeof TAG_DISPLAY_NAMES
-										] || tag}`}
+										title={`${
+											selectedTags.has(tag)
+												? "移除"
+												: "添加"
+										}标签：${
+											TAG_DISPLAY_NAMES[
+												tag as keyof typeof TAG_DISPLAY_NAMES
+											] || tag
+										}`}
+										onMouseEnter={() =>
+											setHoveredTagId(tag)
+										}
+										onMouseLeave={() =>
+											setHoveredTagId(null)
+										}
 										style={{
 											background:
 												config.colorGroups[
@@ -1044,8 +1087,8 @@ function App() {
 							setUserInfo(info);
 							setLoadingUserInfo(false);
 						}}
-						onKeyDown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
+						onKeyDown={e => {
+							if (e.key === "Enter" || e.key === " ") {
 								e.preventDefault();
 								if (!loadingUserInfo) {
 									(async () => {
@@ -1062,7 +1105,13 @@ function App() {
 						}}
 						disabled={loadingUserInfo}
 						aria-busy={loadingUserInfo}
-						title={loadingUserInfo ? '正在加载...' : (userInfo ? '重新获取最新信息' : '加载更多信息')}
+						title={
+							loadingUserInfo
+								? "正在加载..."
+								: userInfo
+								? "重新获取最新信息"
+								: "加载更多信息"
+						}
 						style={{
 							opacity: loadingUserInfo ? 0.6 : 1,
 							cursor: loadingUserInfo ? "default" : "pointer",
@@ -1133,8 +1182,8 @@ function App() {
 				/>
 				<button
 					onClick={handleCenterGraph}
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
+					onKeyDown={e => {
+						if (e.key === "Enter" || e.key === " ") {
 							e.preventDefault();
 							handleCenterGraph();
 						}
