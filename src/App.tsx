@@ -660,7 +660,9 @@ function App() {
 				ctx.stroke();
 			}
 
-			if (zoomLevel > 1) {
+			const shouldShowText = zoomLevel > 1 || isHoveredNodeConnected || isHoveredTagMatch;
+
+			if (shouldShowText) {
 				let textOpacity = 1;
 				if (hoveredNodeId && !isHoveredNodeConnected) {
 					textOpacity = 0.1;
