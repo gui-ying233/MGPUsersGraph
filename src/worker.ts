@@ -49,12 +49,11 @@ interface NodeSizeResult {
 function buildTextLineCache(nodes: GraphNode[]): Record<string, string[]> {
 	const cache: Record<string, string[]> = {};
 	nodes.forEach(node => {
-		const charLimit = 25;
 		const lines: string[] = [];
 		let currentLine = "";
 		for (const char of node.name) {
 			currentLine += char;
-			if (currentLine.length >= charLimit) {
+			if (currentLine.length >= 25) {
 				lines.push(currentLine);
 				currentLine = "";
 			}
@@ -76,6 +75,10 @@ function buildNodeSizeCache(
 	});
 	return cache;
 }
+
+let cachedAllNodesFilterResult: FilterResult | null = null;
+let cachedTextLineCache: Record<string, string[]> | null = null;
+let cachedNodeSizeCache: Record<string, number> | null = null;
 
 function processFilter(
 	nodes: GraphNode[],
@@ -145,15 +148,11 @@ function processFilter(
 		}
 	}
 
-	const resultNodeIdSet = resultNodeIds;
-	const filteredNodeIds = Array.from(resultNodeIdSet);
+	const filteredNodeIds = Array.from(resultNodeIds);
 	const filteredLinkIds: string[] = [];
 
 	links.forEach(link => {
-		if (
-			resultNodeIdSet.has(link.source) &&
-			resultNodeIdSet.has(link.target)
-		) {
+		if (resultNodeIds.has(link.source) && resultNodeIds.has(link.target)) {
 			filteredLinkIds.push(`${link.source}|${link.target}`);
 		}
 	});
@@ -172,24 +171,60 @@ self.onmessage = (
 
 	if (message.type === "filter") {
 		const filterMessage = message as FilterMessage;
-		const result = processFilter(
-			filterMessage.nodes,
-			filterMessage.links,
-			filterMessage.searchTerm,
-			filterMessage.selectedTags,
-			filterMessage.tagIndexCache
-		);
-		self.postMessage(result);
+		if (
+			filterMessage.searchTerm.trim() === "" &&
+			filterMessage.selectedTags.length === 0
+		) {
+			if (cachedAllNodesFilterResult) {
+				self.postMessage(cachedAllNodesFilterResult);
+				return;
+			}
+			const result = processFilter(
+				filterMessage.nodes,
+				filterMessage.links,
+				filterMessage.searchTerm,
+				filterMessage.selectedTags,
+				filterMessage.tagIndexCache
+			);
+			cachedAllNodesFilterResult = result;
+			self.postMessage(result);
+		} else {
+			self.postMessage(
+				processFilter(
+					filterMessage.nodes,
+					filterMessage.links,
+					filterMessage.searchTerm,
+					filterMessage.selectedTags,
+					filterMessage.tagIndexCache
+				)
+			);
+		}
 	} else if (message.type === "textCache") {
 		const textMessage = message as TextCacheMessage;
-		const textLineCache = buildTextLineCache(textMessage.nodes);
-		self.postMessage({ textLineCache } as TextCacheResult);
+		if (cachedTextLineCache) {
+			self.postMessage({
+				textLineCache: cachedTextLineCache,
+			} as TextCacheResult);
+			return;
+		}
+		cachedTextLineCache = buildTextLineCache(textMessage.nodes);
+		self.postMessage({
+			textLineCache: cachedTextLineCache,
+		} as TextCacheResult);
 	} else if (message.type === "nodeSize") {
 		const nodeSizeMessage = message as NodeSizeMessage;
-		const nodeSizeCache = buildNodeSizeCache(
+		if (cachedNodeSizeCache) {
+			self.postMessage({
+				nodeSizeCache: cachedNodeSizeCache,
+			} as NodeSizeResult);
+			return;
+		}
+		cachedNodeSizeCache = buildNodeSizeCache(
 			nodeSizeMessage.nodes,
 			nodeSizeMessage.nodeSizeMultiplier
 		);
-		self.postMessage({ nodeSizeCache } as NodeSizeResult);
+		self.postMessage({
+			nodeSizeCache: cachedNodeSizeCache,
+		} as NodeSizeResult);
 	}
 };
