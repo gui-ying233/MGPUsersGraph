@@ -11,7 +11,6 @@ export interface GraphConfig {
 	};
 	nodeSizeMultiplier: number;
 	lineSizeMultiplier: number;
-	totalNodes: number;
 }
 
 export const TAG_DISPLAY_NAMES: Record<string, string> = {
@@ -81,7 +80,6 @@ export const CONFIG: GraphConfig = {
 		alpha: 0.1,
 		alphaMin: 0.001,
 	},
-	nodeSizeMultiplier: 0.247941080729167,
+	nodeSizeMultiplier: 0.25,
 	lineSizeMultiplier: 0.1,
-	totalNodes: 10953,
 };

@@ -28,7 +28,6 @@ export interface GraphConfig {
 	};
 	nodeSizeMultiplier: number;
 	lineSizeMultiplier: number;
-	totalNodes: number;
 }
 
 export interface ForceParams {
