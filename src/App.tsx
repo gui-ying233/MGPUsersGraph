@@ -87,9 +87,7 @@ async function fetchUserInfo(
 ): Promise<UserInfo | null> {
 	if (!skipCache) {
 		const cached = await getUserFromCache(username);
-		if (cached) {
-			return cached;
-		}
+		if (cached) return cached;
 	}
 
 	try {
@@ -538,9 +536,7 @@ function App() {
 		if (selectedNode && !userInfo && !loadingUserInfo) {
 			(async () => {
 				const cached = await getUserFromCache(selectedNode.name);
-				if (cached) {
-					setUserInfo(cached);
-				}
+				if (cached) setUserInfo(cached);
 			})();
 		}
 	}, [selectedNode, userInfo, loadingUserInfo]);
