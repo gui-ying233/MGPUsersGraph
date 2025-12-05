@@ -60,7 +60,7 @@ function parseMarkdownFile(filePath) {
 
 function findLinksInContent(content) {
 	const linkMatches = content.match(/\[\[([^\]]+)\]\]/g) || [];
-	return linkMatches.map(link => link.slice(2, -2));
+	return linkMatches.map(link => link.slice(2, -2).replaceAll("_", " "));
 }
 
 function getAllMarkdownFiles() {

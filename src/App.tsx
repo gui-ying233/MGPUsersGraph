@@ -900,6 +900,7 @@ function App() {
 								justifyContent: "center",
 								minWidth: "28px",
 								minHeight: "28px",
+								userSelect: "none",
 							}}
 							onMouseEnter={e =>
 								(e.currentTarget.style.color = "#eceff4")
