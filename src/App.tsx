@@ -258,9 +258,7 @@ function App() {
 	const allNodesCountRef = useRef<number>(0);
 
 	useEffect(() => {
-		workerPoolRef.current = new WorkerPool(
-			Math.ceil((navigator.hardwareConcurrency || 4) / 2)
-		);
+		workerPoolRef.current = new WorkerPool(navigator.hardwareConcurrency);
 
 		batchProcessorRef.current = new BatchProcessor(50);
 
