@@ -34,3 +34,19 @@ export interface ForceParams {
 	distanceMax: number;
 	centerStrength: number;
 }
+
+export interface CompressedNode {
+	n: string;
+	t?: string[];
+	e?: number;
+}
+
+export interface CompressedGraph {
+	d: CompressedNode[];
+	l: number[][];
+}
+
+export interface QQHashEntry {
+	Hash: string;
+	QQ: number | null;
+}

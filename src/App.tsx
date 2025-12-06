@@ -2,6 +2,11 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { CONFIG, TAG_DISPLAY_NAMES, type GraphConfig } from "./config";
 import { WorkerPool, BatchProcessor } from "./workerPool";
+import {
+	type CompressedNode,
+	type CompressedGraph,
+	type QQHashEntry,
+} from "./types";
 import "./App.css";
 
 interface UserInfo {
@@ -240,6 +245,9 @@ function App() {
 	} | null>(null);
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
+	const [QQHash, setQQHash] = useState<Record<string, QQHashEntry> | null>(
+		null
+	);
 	const graphRef = useRef<any>(null);
 	const zoomTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -309,10 +317,21 @@ function App() {
 		if (!config) return;
 		const loadGraph = async () => {
 			try {
-				const res = await fetch("./data/graph.json");
-				const compressed = await res.json();
+				const [graphRes, qqRes] = await Promise.all([
+					fetch(
+						"https://testingcf.jsdelivr.net/gh/gui-ying233/MGPUsersGraph/docs/data/graph.json"
+					),
+					fetch(
+						"https://testingcf.jsdelivr.net/gh/gui-ying233/QQHash/QQHash.json"
+					),
+				]);
 
-				const nodeArray = compressed.d.map((node: any) => ({
+				const compressed: CompressedGraph = await graphRes.json();
+				const QQHash = await qqRes.json();
+
+				setQQHash(QQHash);
+
+				const nodeArray = compressed.d.map((node: CompressedNode) => ({
 					id: node.n,
 					name: node.n,
 					tags: node.t || [],
@@ -346,7 +365,7 @@ function App() {
 				);
 
 				const validTags = new Set<string>();
-				nodeArray.forEach((node: any) => {
+				nodeArray.forEach((node: GraphNode) => {
 					node.tags.forEach((tag: string) => {
 						validTags.add(tag);
 					});
@@ -918,6 +937,11 @@ function App() {
 					<div className="info-item">
 						<strong>链出：</strong> {selectedNode.outgoingCount}
 					</div>
+					{QQHash?.[selectedNode.name]?.QQ && (
+						<div className="info-item">
+							<strong>QQ：</strong> {QQHash[selectedNode.name].QQ}
+						</div>
+					)}
 					<div className="node-tags">
 						<strong>标签：</strong>
 						{selectedNode.tags.length > 0 ? (
