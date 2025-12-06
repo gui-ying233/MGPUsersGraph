@@ -1,11 +1,8 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import os from "os";
+import { readFileSync, readdirSync, writeFileSync } from "fs";
+import { resolve, basename } from "path";
+import { homedir } from "os";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.resolve(os.homedir(), "MGPUsers");
-const outputDir = path.resolve(__dirname, "../public/data");
+const dataDir = resolve(homedir(), "MGPUsers");
 
 const TAG_COLOR_MAP = {
 	staff: "#198754",
@@ -26,15 +23,6 @@ const TAG_COLOR_MAP = {
 };
 const DEFAULT_COLOR = "#eceff4";
 
-if (!fs.existsSync(outputDir)) {
-	fs.mkdirSync(outputDir, { recursive: true });
-} else {
-	const files = fs.readdirSync(outputDir);
-	for (const file of files) {
-		fs.unlinkSync(path.resolve(outputDir, file));
-	}
-}
-
 function normalizeTag(tag) {
 	if (tag === "interface") return "interface-admin";
 	if (tag === "special") return "special-contributor";
@@ -43,8 +31,8 @@ function normalizeTag(tag) {
 
 function parseMarkdownFile(filePath) {
 	try {
-		const content = fs.readFileSync(filePath, "utf-8");
-		const fileName = path.basename(filePath, ".md");
+		const content = readFileSync(filePath, "utf-8");
+		const fileName = basename(filePath, ".md");
 
 		const tagMatches = content.match(/#\w+/g) || [];
 		const tags = [
@@ -65,11 +53,11 @@ function findLinksInContent(content) {
 
 function getAllMarkdownFiles() {
 	const files = [];
-	const dir = fs.readdirSync(dataDir);
+	const dir = readdirSync(dataDir);
 
 	for (const file of dir) {
 		if (file.endsWith(".md") && !file.startsWith(".")) {
-			files.push(path.resolve(dataDir, file));
+			files.push(resolve(dataDir, file));
 		}
 	}
 
@@ -91,10 +79,10 @@ function getAllMarkdownFiles() {
 		const node = parseMarkdownFile(filePath);
 		if (!node) continue;
 
-		const fileName = path.basename(filePath, ".md");
+		const fileName = basename(filePath, ".md");
 		nodeMap.set(fileName, node);
 
-		const content = fs.readFileSync(filePath, "utf-8");
+		const content = readFileSync(filePath, "utf-8");
 		const linkedFiles = findLinksInContent(content);
 
 		for (const linkedFile of linkedFiles) {
@@ -178,8 +166,8 @@ function getAllMarkdownFiles() {
 		nodeIdMap[link.target],
 	]);
 
-	fs.writeFileSync(
-		path.resolve(outputDir, "graph.json"),
+	writeFileSync(
+		"graph.json",
 		JSON.stringify({ d: nodeDict, l: compressedLinks }, null, 0)
 	);
 

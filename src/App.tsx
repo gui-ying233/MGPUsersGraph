@@ -317,7 +317,7 @@ function App() {
 			try {
 				const [graphRes, qqRes] = await Promise.all([
 					fetch(
-						"https://testingcf.jsdelivr.net/gh/gui-ying233/MGPUsersGraph@main/docs/data/graph.json",
+						"https://testingcf.jsdelivr.net/gh/gui-ying233/MGPUsersGraph@main/graph.json",
 						{
 							priority: "high",
 						}
