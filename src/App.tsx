@@ -317,13 +317,13 @@ function App() {
 			try {
 				const [graphRes, qqRes] = await Promise.all([
 					fetch(
-						"https://testingcf.jsdelivr.net/gh/gui-ying233/MGPUsersGraph/docs/data/graph.json",
+						"https://testingcf.jsdelivr.net/gh/gui-ying233/MGPUsersGraph@main/docs/data/graph.json",
 						{
 							priority: "high",
 						}
 					),
 					fetch(
-						"https://testingcf.jsdelivr.net/gh/gui-ying233/QQHash/QQHash.json",
+						"https://testingcf.jsdelivr.net/gh/gui-ying233/QQHash@main/QQHash.json",
 						{
 							priority: "high",
 						}
