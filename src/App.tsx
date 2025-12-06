@@ -941,9 +941,9 @@ function App() {
 					<div className="info-item">
 						<strong>链出：</strong> {selectedNode.outgoingCount}
 					</div>
-					{QQHash?.[selectedNode.name]?.QQ && (
+					{QQHash?.[selectedNode.name]?.Q && (
 						<div className="info-item">
-							<strong>QQ：</strong> {QQHash[selectedNode.name].QQ}
+							<strong>QQ：</strong> {QQHash[selectedNode.name].Q}
 						</div>
 					)}
 					<div className="node-tags">

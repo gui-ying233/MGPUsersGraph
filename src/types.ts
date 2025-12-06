@@ -47,6 +47,6 @@ export interface CompressedGraph {
 }
 
 export interface QQHashEntry {
-	Hash: string;
-	QQ: number | null;
+	H: string;
+	Q: number | null;
 }
