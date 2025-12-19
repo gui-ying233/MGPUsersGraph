@@ -6,7 +6,7 @@
 6. 当阅读相关代码时尽可能完整的阅读，特别是阅读相关代码所有的使用和被使用；
 7. 编译数据存放在 `./docs`，获取信息时尽可能排除掉；
 8. 在阅读大量代码时查看项目结构以帮助判断；
-9. 在修改代码完成后需要 `npm run build`，或在修改 `./scripts/generateGraphData.js` 后运行 `npm run generate`；
+9. 在修改代码完成后需要 `pnpm run build`，或在修改 `./scripts/generateGraphData.js` 后运行 `pnpm run generate`；
 10. 尽可能完整地写出类型而不是使用例如 any，不要通过修改 eslint.config.js 来避免报错，而是通过行内注释最小化的注释某行的某个报错；
 11. `./graph.json` 也是生成的文件但偶尔可能会需要检查，其内容很多不要一次性全部阅读，使用命令行（以及命令行中的 `node` 或 `python` 等） 进行提取或截取部分信息；
 12. 回复中不要使用 emoji；
