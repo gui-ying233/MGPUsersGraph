@@ -1,0 +1,20 @@
+{
+	"hooks": {
+		"PreToolUse": [
+			{
+				"type": "command",
+				"command": ".github/hooks/restrictions.sh"
+			},
+			{
+				"type": "command",
+				"command": ".github/hooks/npm2pnpm.sh"
+			}
+		],
+		"PostToolUse": [
+			{
+				"type": "command",
+				"command": ".github/hooks/build.sh"
+			}
+		]
+	}
+}
