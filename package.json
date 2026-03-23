@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"upgrade": "pnpm upgrade && pnpm dedupe && git add . && git commit -m 'pnpm'",
+		"upgrade": "pnpm upgrade && pnpm dedupe && pnpm run generate && pnpm run build && git add . && git commit -m 'pnpm'",
 		"generate": "node scripts/generateGraphData.js",
 		"dev": "vite",
 		"build": "tsc && vite build",
