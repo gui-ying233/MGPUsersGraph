@@ -28,9 +28,6 @@
 		"globals": "latest",
 		"typescript": "latest",
 		"typescript-eslint": "latest",
-		"vite": "npm:rolldown-vite@^7.3.1"
-	},
-	"overrides": {
-		"vite": "npm:rolldown-vite@latest"
+		"vite": "latest"
 	}
 }
