@@ -7,8 +7,8 @@ permissions:
     contents: write
     pull-requests: write
 jobs:
-    generate:
-        if: github.actor == 'dependabot[bot]'
+    build:
+        if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-slim
         steps:
             - name: Harden the runner (Audit all outbound calls)
