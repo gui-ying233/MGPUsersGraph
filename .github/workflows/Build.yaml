@@ -35,6 +35,7 @@ jobs:
               run: pnpm install
             - name: 构建
               run: |
+                  cd MGPUsersGraph
                   pnpm run generate
                   pnpm run build
                   git config user.name "github-actions[bot]"
