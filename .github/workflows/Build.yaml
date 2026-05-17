@@ -9,7 +9,7 @@ permissions:
 jobs:
     build:
         if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
-        runs-on: ubuntu-slim
+        runs-on: ubuntu-latest
         steps:
             - name: Harden the runner (Audit all outbound calls)
               uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # main
