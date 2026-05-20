@@ -38,7 +38,7 @@ jobs:
               run: sfw pnpm install
             - name: 构建
               run: |
-                  pnpm run build
+                  node --run build
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add -A
