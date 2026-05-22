@@ -4,11 +4,13 @@ on:
         types: [opened, synchronize]
     workflow_dispatch:
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 jobs:
     build:
         if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch'
+        permissions:
+            contents: write
+            pull-requests: write
         runs-on: ubuntu-latest
         steps:
             - name: Harden the runner (Audit all outbound calls)
@@ -39,8 +41,11 @@ jobs:
             - name: 构建
               run: |
                   node --run build
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add -A
-                  git diff --staged --quiet || git commit -m "pnpm"
-                  git push
+            - name: 提交
+              uses: step-security/ghcommit-action@da34a5bfeb80f309e05b4f5f1be06ea83659ba44 #main
+              with:
+                  commit_message: "pnpm"
+                  repo: ${{ github.repository }}
+                  branch: ${{ github.head_ref || github.ref_name }}
+              env:
+                  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
