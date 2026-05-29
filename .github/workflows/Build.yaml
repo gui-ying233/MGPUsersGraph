@@ -27,7 +27,7 @@ jobs:
                   ref: ${{ github.head_ref }}
                   token: ${{ secrets.GITHUB_TOKEN }}
             - name: 准备 node.js
-              uses: actions/setup-node@ad1b57eb8159e2fd3cc753317dd4a4016287218f # main
+              uses: actions/setup-node@0355742c943ddb13ca8a6b700f824231caa91e75 # main
               with:
                   node-version: 24
                   check-latest: true
