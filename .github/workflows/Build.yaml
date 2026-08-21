@@ -42,7 +42,7 @@ jobs:
               run: |
                   node --run build
             - name: 提交
-              uses: step-security/ghcommit-action@da34a5bfeb80f309e05b4f5f1be06ea83659ba44 #main
+              uses: step-security/ghcommit-action@4f593fe8d019aa27a8c310bc6ee2ffec8d7e53f4 #main
               with:
                   commit_message: "pnpm"
                   repo: ${{ github.repository }}
